@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en" {% if session.get('dark_mode') %}data-bs-theme="dark"{% endif %}>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AI Skill Development{% endblock %}</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body class="bg-light d-flex flex-column vh-100 overflow-hidden">
+
+    <!-- Top Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm z-3"
+        style="background: linear-gradient(135deg, #0d6efd, #0dcaf0);">
+        <div class="container-fluid">
+            <!-- Sidebar Toggler (Mobile) -->
+            <button class="btn btn-outline-light d-md-none me-2" type="button" data-bs-toggle="offcanvas"
+                data-bs-target="#sidebarOffcanvas" aria-controls="sidebarOffcanvas">
+                <i class="fas fa-bars"></i>
+            </button>
+            <a class="navbar-brand fw-bold" href="{{ url_for('dashboard') }}">
+                <i class="fa-solid fa-microphone-lines"></i> AI Communication Skill & Interview Trainer
+            </a>
+            
+            <!-- Middle Section: Gamification & Stats -->
+            <div class="d-none d-xl-flex mx-auto align-items-center gap-3">
+                <div class="badge bg-white bg-opacity-25 border border-white border-opacity-25 rounded-pill px-3 py-2 d-flex align-items-center gap-2 fw-normal shadow-sm" style="backdrop-filter: blur(5px);" title="Daily Speaking Goal">
+                    <i class="fa-solid fa-bullseye text-warning"></i>
+                    <span class="text-white">Goal: {{ nav_stats.today_mins|default(0) }}/20 Mins</span>
+                    <div class="progress bg-dark bg-opacity-25 mx-1" style="width: 50px; height: 5px; border-radius: 3px;">
+                        <div class="progress-bar bg-warning" style="width: {{ nav_stats.goal_pct|default(0) }}%"></div>
+                    </div>
+                </div>
+                <div class="badge bg-white bg-opacity-25 border border-white border-opacity-25 rounded-pill px-3 py-2 d-flex align-items-center gap-2 fw-normal shadow-sm" style="backdrop-filter: blur(5px);" title="Current Learning Streak">
+                    <i class="fa-solid fa-fire text-danger"></i>
+                    <span class="text-white">{{ nav_stats.streak|default(0) }} Day Streak</span>
+                </div>
+                <div class="badge bg-white bg-opacity-25 border border-white border-opacity-25 rounded-pill px-3 py-2 d-flex align-items-center gap-2 fw-normal shadow-sm" style="backdrop-filter: blur(5px);" title="Average Fluency Score">
+                    <i class="fa-solid fa-star text-light"></i>
+                    <span class="text-white">Avg Fluency: {{ nav_stats.avg_fluency|default(0) }}%</span>
+                </div>
+            </div>
+
+            <div class="ms-auto d-flex align-items-center">
+                <div class="dropdown">
+                    <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle" id="dropdownUser1" data-bs-toggle="dropdown" aria-expanded="false">
+                        <img src="{{ user.avatar }}" alt="User" width="45" height="45" class="rounded-circle border border-2 border-white" style="object-fit: cover;">
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-4 mt-2" aria-labelledby="dropdownUser1" style="min-width: 250px;">
+                        <li class="px-3 py-2 text-center border-bottom mb-2">
+                            <img src="{{ user.avatar }}" alt="User" width="64" height="64" class="rounded-circle mb-2 shadow-sm">
+                            <h6 class="mb-0 fw-bold">{{ user.name }}</h6>
+                            <small class="text-muted d-block">{{ user.email }}</small>
+                            <span class="badge bg-light-primary text-primary mt-2 rounded-pill">{{ user.role }}</span>
+                        </li>
+                        <li class="px-3 py-2 d-flex justify-content-between">
+                            <button type="button" class="btn btn-sm btn-outline-primary rounded-3 text-nowrap" data-bs-toggle="modal" data-bs-target="#editProfileModal">
+                                <i class="fas fa-user-edit me-1"></i> Edit Profile
+                            </button>
+                            <a class="btn btn-sm btn-outline-danger rounded-3 text-nowrap" href="{{ url_for('logout') }}">
+                                <i class="fas fa-sign-out-alt me-1"></i> Logout
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Wrapper -->
+    <div class="d-flex flex-grow-1 overflow-hidden">
+
+        <!-- Sidebar Navigation (Desktop) -->
+        <div class="bg-white shadow-sm flex-shrink-0 d-none d-md-flex flex-column sidebar"
+            style="width: 260px; z-index: 2;">
+            <div class="p-3 pt-4 flex-grow-1">
+                <ul class="nav flex-column gap-2 mb-auto">
+                    <li class="nav-item">
+                        <a class="nav-link rounded-3 px-3 py-2 text-dark hover-bg-light {% if request.endpoint == 'dashboard' %}active-nav fw-bold bg-light-primary text-primary{% endif %}"
+                            href="{{ url_for('dashboard') }}">
+                            <i class="fas fa-home me-2"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link rounded-3 px-3 py-2 text-dark hover-bg-light {% if request.endpoint == 'communication' %}active-nav fw-bold bg-light-primary text-primary{% endif %}"
+                            href="{{ url_for('communication') }}">
+                            <i class="fas fa-comments me-2"></i> Communication
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link rounded-3 px-3 py-2 text-dark hover-bg-light {% if request.endpoint == 'interview' %}active-nav fw-bold bg-light-primary text-primary{% endif %}"
+                            href="{{ url_for('interview') }}">
+                            <i class="fas fa-user-tie me-2"></i> Mock Interview
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link rounded-3 px-3 py-2 text-dark hover-bg-light {% if request.endpoint == 'voice_trainer' %}active-nav fw-bold bg-light-primary text-primary{% endif %}"
+                            href="{{ url_for('voice_trainer') }}">
+                            <i class="fas fa-satellite-dish me-2"></i> Voice Trainer
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link rounded-3 px-3 py-2 text-dark hover-bg-light {% if request.endpoint == 'reports' %}active-nav fw-bold bg-light-primary text-primary{% endif %}"
+                            href="{{ url_for('reports') }}">
+                            <i class="fas fa-chart-line me-2"></i> Reports
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link rounded-3 px-3 py-2 text-dark hover-bg-light {% if request.endpoint == 'history' %}active-nav fw-bold bg-light-primary text-primary{% endif %}"
+                            href="{{ url_for('history') }}">
+                            <i class="fas fa-history me-2"></i> History
+                        </a>
+                    </li>
+                    <li class="nav-item mt-2 pt-2 border-top">
+                        <a class="nav-link rounded-3 px-3 py-2 text-dark hover-bg-light {% if request.endpoint == 'settings' %}active-nav fw-bold bg-light-primary text-primary{% endif %}"
+                            href="#" data-bs-toggle="modal" data-bs-target="#settingsModal">
+                            <i class="fas fa-cog me-2"></i> Settings
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            <div class="p-3 border-top mt-auto text-center text-muted small">
+                &copy; 2026 AI Skill Dev
+            </div>
+        </div>
+
+        <!-- Sidebar Navigation (Mobile Offcanvas) -->
+        <div class="offcanvas offcanvas-start bg-white" tabindex="-1" id="sidebarOffcanvas"
+            aria-labelledby="sidebarOffcanvasLabel">
+            <div class="offcanvas-header border-bottom">
+                <h5 class="offcanvas-title fw-bold" id="sidebarOffcanvasLabel"><i
+                        class="fa-solid fa-microphone-lines text-primary me-2"></i> Menu</h5>
+                <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"
+                    aria-label="Close"></button>
+            </div>
+            <div class="offcanvas-body d-flex flex-column p-0 pt-3">
+                <div class="px-3 flex-grow-1">
+                    <ul class="nav flex-column gap-2 mb-auto">
+                        <li class="nav-item">
+                            <a class="nav-link rounded-3 px-3 py-2 text-dark hover-bg-light {% if request.endpoint == 'dashboard' %}active-nav fw-bold bg-light-primary text-primary{% endif %}"
+                                href="{{ url_for('dashboard') }}">
+                                <i class="fas fa-home me-2"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link rounded-3 px-3 py-2 text-dark hover-bg-light {% if request.endpoint == 'communication' %}active-nav fw-bold bg-light-primary text-primary{% endif %}"
+                                href="{{ url_for('communication') }}">
+                                <i class="fas fa-comments me-2"></i> Communication
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link rounded-3 px-3 py-2 text-dark hover-bg-light {% if request.endpoint == 'interview' %}active-nav fw-bold bg-light-primary text-primary{% endif %}"
+                                href="{{ url_for('interview') }}">
+                                <i class="fas fa-user-tie me-2"></i> Mock Interview
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link rounded-3 px-3 py-2 text-dark hover-bg-light {% if request.endpoint == 'voice_trainer' %}active-nav fw-bold bg-light-primary text-primary{% endif %}"
+                                href="{{ url_for('voice_trainer') }}">
+                                <i class="fas fa-satellite-dish me-2"></i> Voice Trainer
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link rounded-3 px-3 py-2 text-dark hover-bg-light {% if request.endpoint == 'reports' %}active-nav fw-bold bg-light-primary text-primary{% endif %}"
+                                href="{{ url_for('reports') }}">
+                                <i class="fas fa-chart-line me-2"></i> Reports
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link rounded-3 px-3 py-2 text-dark hover-bg-light {% if request.endpoint == 'history' %}active-nav fw-bold bg-light-primary text-primary{% endif %}"
+                                href="{{ url_for('history') }}">
+                                <i class="fas fa-history me-2"></i> History
+                            </a>
+                        </li>
+                        <li class="nav-item mt-2 pt-2 border-top">
+                            <a class="nav-link rounded-3 px-3 py-2 text-dark hover-bg-light {% if request.endpoint == 'settings' %}active-nav fw-bold bg-light-primary text-primary{% endif %}"
+                                href="#" data-bs-toggle="modal" data-bs-target="#settingsModal">
+                                <i class="fas fa-cog me-2"></i> Settings
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="flex-grow-1 overflow-auto bg-light w-100">
+            <div class="container-fluid p-4 p-md-5 mx-auto" style="max-width: 80%;">
+                {% block content %}{% endblock %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Profile Modal (Global) -->
+    <div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-light border-bottom-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="editProfileModalLabel">Edit Profile</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form action="{{ url_for('update_profile') }}" method="POST" enctype="multipart/form-data">
+                        <div class="mb-3 text-center">
+                            <label for="profilePicture" class="form-label d-block text-muted small fw-semibold">Profile Picture</label>
+                            <input class="form-control form-control-sm" type="file" id="profilePicture" name="profile_picture" accept="image/*">
+                            <small class="text-muted d-block mt-1">Leave blank to keep current picture.</small>
+                        </div>
+                        <div class="mb-3">
+                            <label for="userName" class="form-label fw-semibold">Full Name</label>
+                            <input type="text" class="form-control" id="userName" name="name" value="{{ user.name }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="userEmail" class="form-label fw-semibold">Email Address</label>
+                            <input type="email" class="form-control" id="userEmail" name="email" value="{{ user.email }}" required>
+                        </div>
+                        <div class="mb-4">
+                            <label for="userRole" class="form-label fw-semibold">Role / Description</label>
+                            <select class="form-select" id="userRole" name="role">
+                                <option value="Beginner Learner" {% if user.role == 'Beginner Learner' %}selected{% endif %}>Beginner Learner</option>
+                                <option value="Intermediate Learner" {% if user.role == 'Intermediate Learner' %}selected{% endif %}>Intermediate Learner</option>
+                                <option value="Advanced Learner" {% if user.role == 'Advanced Learner' %}selected{% endif %}>Advanced Learner</option>
+                                <option value="Premium Learner" {% if user.role == 'Premium Learner' %}selected{% endif %}>Premium Learner</option>
+                                <option value="Instructor" {% if user.role == 'Instructor' %}selected{% endif %}>Instructor</option>
+                            </select>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary rounded-3 fw-semibold py-2">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal (Global) -->
+    <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-light border-bottom-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="settingsModalLabel"><i class="fas fa-cog me-2"></i>Settings</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form action="{{ url_for('update_settings') }}" method="POST">
+                        <div class="mb-4">
+                            <h6 class="fw-bold mb-3">Preferences</h6>
+                            <div class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox" id="emailNotifications" name="email_notifications" {% if session.get('email_notifications', True) %}checked{% endif %}>
+                                <label class="form-check-label" for="emailNotifications">Email Notifications</label>
+                            </div>
+                            <div class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox" id="darkMode" name="dark_mode" {% if session.get('dark_mode', False) %}checked{% endif %}>
+                                <label class="form-check-label" for="darkMode">Dark Mode</label>
+                            </div>
+                            
+                            <!-- AI Voice Selection -->
+                            <div class="mt-4 pt-3 border-top">
+                                <h6 class="fw-bold mb-3"><i class="fas fa-microphone-alt text-primary me-2"></i>AI Voice Settings</h6>
+                                <label for="aiVoiceSelect" class="form-label fw-semibold text-secondary small">Preferred AI Voice</label>
+                                <div class="d-flex gap-2 mb-3">
+                                    <select class="form-select shadow-sm" id="aiVoiceSelect" name="ai_voice">
+                                        <option value="ta" {% if session.get('ai_voice') == 'ta' %}selected{% endif %}>Tamil</option>
+                                        <option value="en" {% if session.get('ai_voice', 'en') == 'en' %}selected{% endif %}>English</option>
+                                    </select>
+                                </div>
+                                <label for="aiVoiceType" class="form-label fw-semibold text-secondary small">Voice Type / Gender</label>
+                                <div class="d-flex gap-2">
+                                    <select class="form-select shadow-sm" id="aiVoiceType" name="ai_voice_type">
+                                        <option value="male" {% if session.get('ai_voice_type') in ['male', 'adult_male'] %}selected{% endif %}>Male</option>
+                                        <option value="female" {% if session.get('ai_voice_type', 'female') in ['female', 'adult_female'] or not session.get('ai_voice_type') %}selected{% endif %}>Female</option>
+                                    </select>
+                                    <button type="button" class="btn btn-outline-primary shadow-sm" id="previewVoiceBtn" title="Preview Voice">
+                                        <i class="fas fa-play"></i>
+                                    </button>
+                                </div>
+                                <small class="text-muted d-block mt-2"><i class="fas fa-info-circle me-1"></i>Select the voice used across all AI interactions.</small>
+                            </div>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary rounded-3 fw-semibold py-2">Save Settings</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Global Voice Settings Logic -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const voiceSelect = document.getElementById('aiVoiceSelect');
+            const previewBtn = document.getElementById('previewVoiceBtn');
+            const savedVoiceURI = "{{ session.get('ai_voice', 'en') }}";
+            const voiceTypeSelect = document.getElementById('aiVoiceType');
+            const globalVoiceTypeFallback = "{{ session.get('ai_voice_type', 'female') }}";
+
+            // Function to change audio pitch/rate based on voice type
+            function applyGlobalVoiceType(audioEl, type) {
+                audioEl.preservesPitch = false;
+                if (type === 'male' || type === 'adult_male') {
+                    audioEl.playbackRate = 0.95;
+                } else {
+                    audioEl.playbackRate = 1.0;
+                }
+            }
+
+            // Only Tamil and English language options
+            const availableLanguages = [
+                { code: 'ta', label: 'Tamil' },
+                { code: 'en', label: 'English' }
+            ];
+
+            function populateVoiceList() {
+                if (!voiceSelect) return;
+                voiceSelect.innerHTML = '';
+                availableLanguages.forEach(lang => {
+                    const option = document.createElement('option');
+                    option.value = lang.code;
+                    option.textContent = lang.label;
+                    
+                    let matchCode = savedVoiceURI.split('-')[0];
+                    if (matchCode === 'lang:ta' || savedVoiceURI === 'ta-IN') matchCode = 'ta';
+                    if (matchCode === 'lang:en' || savedVoiceURI === 'en-US' || savedVoiceURI === 'en-IN') matchCode = 'en';
+                    
+                    if(lang.code === matchCode || (savedVoiceURI === '' && lang.code === 'en')) {
+                        option.selected = true;
+                    }
+                    voiceSelect.appendChild(option);
+                });
+            }
+
+            populateVoiceList();
+
+            let currentPreviewAudio = null;
+
+            if(previewBtn) {
+                previewBtn.addEventListener('click', async function() {
+                    const btnIcon = previewBtn.querySelector('i');
+                    
+                    if (currentPreviewAudio && !currentPreviewAudio.paused) {
+                        currentPreviewAudio.pause();
+                        btnIcon.className = 'fas fa-play';
+                        return;
+                    }
+
+                    const langCode = voiceSelect.value;
+                    let text = "Hello, this is a preview of your selected AI voice. How does it sound?";
+                    const previewTexts = {
+                        'ta': "வணக்கம், இது தேர்ந்தெடுக்கப்பட்ட செயற்கை நுண்ணறிவு குரலின் முன்னோட்டம்.",
+                        'en': "Hello, this is a preview of your selected AI voice. How does it sound?"
+                    };
+                    if (previewTexts[langCode]) {
+                        text = previewTexts[langCode];
+                    }
+                    
+                    btnIcon.className = 'fas fa-spinner fa-spin';
+                    previewBtn.disabled = true;
+
+                    try {
+                        const selectedVoiceType = voiceTypeSelect ? voiceTypeSelect.value : globalVoiceTypeFallback;
+                        const response = await fetch('/api/tts', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ text: text, lang: langCode, voice_type: selectedVoiceType })
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.status === 'success') {
+                            btnIcon.className = 'fas fa-pause';
+                            previewBtn.disabled = false;
+                            
+                            currentPreviewAudio = new Audio(data.audio_url);
+                            applyGlobalVoiceType(currentPreviewAudio, selectedVoiceType);
+                            
+                            currentPreviewAudio.play().catch(e => {
+                                console.error("Autoplay blocked", e);
+                                btnIcon.className = 'fas fa-play';
+                                alert("Playback blocked. Please interact with the document first.");
+                            });
+
+                            currentPreviewAudio.onended = () => {
+                                btnIcon.className = 'fas fa-play';
+                            };
+                            currentPreviewAudio.onerror = () => {
+                                btnIcon.className = 'fas fa-play';
+                                alert("Failed to play the audio stream.");
+                            };
+                        } else {
+                            btnIcon.className = 'fas fa-play';
+                            previewBtn.disabled = false;
+                            alert("Audio generation failed: " + data.message);
+                        }
+                    } catch (err) {
+                        console.error("Network Error", err);
+                        btnIcon.className = 'fas fa-play';
+                        previewBtn.disabled = false;
+                        alert("Network error occurred during audio generation.");
+                    }
+                });
+            }
+        });
+    </script>
+
+    <!-- Custom JS -->
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>

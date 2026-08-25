@@ -1,0 +1,1050 @@
+{% extends 'base.html' %}
+
+{% block title %}Communication Training{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+        <div>
+            <h2 class="fw-bold mb-1"><i class="fas fa-comments text-primary"></i> Communication Skill Training</h2>
+            <p class="text-muted mb-0">Practice speaking or chatting in multiple languages with real-time AI feedback & performance analysis.</p>
+        </div>
+        <div>
+            <button id="btnEndSessionHeader" class="btn btn-outline-primary fw-bold rounded-pill px-4 shadow-sm" onclick="triggerCompleteSession()">
+                <i class="fas fa-file-invoice me-2"></i>Complete Session & View Report
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Left Column: Settings & Input -->
+    <div class="col-lg-4">
+        <!-- Settings Card -->
+        <div class="card card-custom p-4 mb-4">
+            <h5 class="fw-semibold mb-3 border-bottom pb-2">Session Settings</h5>
+
+            <form id="commSettingsForm">
+                <!-- Language Selection -->
+                <div class="mb-3">
+                    <label for="languageSelect" class="form-label fw-bold">Select Languages (User Input Preference)</label>
+                    <select class="form-select" id="languageSelect" required>
+                        <option value="" disabled selected>Choose a language...</option>
+                        {% for lang in languages %}
+                        <option value="{{ lang.code }}">{{ lang.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <div id="inputLangNotice" class="mt-1 small text-success">
+                        <i class="fas fa-globe me-1"></i> Multilingual Voice Recognition Active
+                    </div>
+                </div>
+
+                <!-- Input Mode -->
+                <div class="mb-4">
+                    <label class="form-label fw-bold text-secondary mb-2 small text-uppercase">Input Mode</label>
+                    <div class="custom-toggle-group d-flex p-1 bg-light rounded-pill border" role="group">
+                        <input type="radio" class="btn-check" name="inputMode" id="inputVoice" value="voice" checked>
+                        <label class="btn btn-sm flex-fill rounded-pill fw-semibold toggle-btn" for="inputVoice">
+                            <i class="fas fa-microphone"></i> Voice Mode
+                        </label>
+                        <input type="radio" class="btn-check" name="inputMode" id="inputText" value="text">
+                        <label class="btn btn-sm flex-fill rounded-pill fw-semibold toggle-btn" for="inputText">
+                            <i class="fas fa-keyboard"></i> Text Mode
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Output Mode -->
+                <div class="mb-4">
+                    <label class="form-label fw-bold text-secondary mb-2 small text-uppercase">AI Reply Mode</label>
+                    <div class="custom-toggle-group d-flex p-1 bg-light rounded-pill border" role="group">
+                        <input type="radio" class="btn-check" name="outputMode" id="outputVoice" value="voice">
+                        <label class="btn btn-sm flex-fill rounded-pill fw-semibold toggle-btn btn-outline-success border-0" for="outputVoice">
+                            <i class="fas fa-volume-up"></i> Voice Mode
+                        </label>
+                        <input type="radio" class="btn-check" name="outputMode" id="outputText" value="text" checked>
+                        <label class="btn btn-sm flex-fill rounded-pill fw-semibold toggle-btn btn-outline-success border-0" for="outputText">
+                            <i class="fas fa-align-left"></i> Text Mode
+                        </label>
+                    </div>
+                </div>
+
+                <!-- AI Reply Languages -->
+                <div class="mb-4">
+                    <label for="replyLanguageSelect" class="form-label fw-bold text-secondary mb-2 small text-uppercase">Reply Language (AI Response Language)</label>
+                    <select class="form-select" id="replyLanguageSelect" required>
+                        {% for lang in languages %}
+                        <option value="{{ lang.code }}" {% if loop.first %}selected{% endif %}>{{ lang.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <small class="text-muted d-block mt-1">AI supports & responds in multiple languages for both Voice & Text.</small>
+                </div>
+
+                <div class="alert alert-info mt-3 py-2 px-3 small">
+                    <i class="fas fa-info-circle"></i> Once settings are selected, start interacting in the chat interface.
+                </div>
+            </form>
+        </div>
+
+        <!-- Live Assessment Card -->
+        <div class="card card-custom p-4">
+            <h5 class="fw-semibold mb-3 border-bottom pb-2">Real-Time Assessment</h5>
+            <div id="assessmentPanel" class="text-center py-4 text-muted">
+                <i class="fas fa-chart-pie fa-3x mb-2" style="opacity: 0.2;"></i>
+                <p class="small mb-0">Live NLP analysis will appear here after interaction</p>
+            </div>
+
+            <div id="assessmentResults" class="d-none">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="small fw-bold text-secondary"><i class="fas fa-comment-dots text-success me-1"></i> Fluency & Cadence</span>
+                        <span class="small fw-bold" id="liveFluencyVal">85%</span>
+                    </div>
+                    <div class="progress rounded-pill bg-light" style="height: 8px;">
+                        <div class="progress-bar bg-success rounded-pill" id="liveFluencyBar" role="progressbar" style="width: 85%"></div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="small fw-bold text-secondary"><i class="fas fa-spell-check text-primary me-1"></i> Grammar Accuracy</span>
+                        <span class="small fw-bold" id="liveGrammarVal">80%</span>
+                    </div>
+                    <div class="progress rounded-pill bg-light" style="height: 8px;">
+                        <div class="progress-bar bg-primary rounded-pill" id="liveGrammarBar" role="progressbar" style="width: 80%"></div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="small fw-bold text-secondary"><i class="fas fa-book-open text-info me-1"></i> Vocabulary Diversity</span>
+                        <span class="small fw-bold" id="liveVocabVal">88%</span>
+                    </div>
+                    <div class="progress rounded-pill bg-light" style="height: 8px;">
+                        <div class="progress-bar bg-info rounded-pill" id="liveVocabBar" role="progressbar" style="width: 88%"></div>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <span class="badge bg-warning text-dark"><i class="fas fa-lightbulb"></i> Improvement Tip</span>
+                    <p class="small mt-1 text-muted mb-3" id="improvementTip">Try to avoid long pauses between sentences.</p>
+                </div>
+                
+                <button class="btn btn-primary w-100 rounded-pill fw-semibold shadow-sm mt-2" onclick="triggerCompleteSession()">
+                    <i class="fas fa-chart-line me-2"></i>Complete Training & Generate Report
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Interactive AI Conversation Box -->
+    <div class="col-lg-8">
+        <div class="card card-custom h-100 d-flex flex-column shadow-sm">
+            <div class="card-header bg-transparent border-bottom py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold"><i class="fas fa-robot text-primary me-2"></i> AI Conversation</h5>
+                    <span class="badge bg-secondary rounded-pill px-3 py-2 border shadow-sm" id="activeLangBadge">No Language Selected</span>
+                </div>
+            </div>
+
+            <div class="card-body custom-scrollbar chat-bg flex-grow-1" id="chatContainer"
+                style="overflow-y: auto; max-height: 580px; min-height: 480px;">
+                <div class="text-center text-muted my-5" id="chatPlaceholder">
+                    <div class="icon-box bg-light-primary text-primary mx-auto mb-3" style="width: 80px; height: 80px; font-size: 32px; border-radius: 50%;">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    <h6 class="fw-semibold">Ready to Practice?</h6>
+                    <p class="small">Select your settings and say "Hello" to start.</p>
+                </div>
+                <!-- Chat messages will be injected here -->
+            </div>
+
+            <div class="card-footer bg-transparent border-top p-3 p-md-4">
+                <!-- Voice Input Controls -->
+                <div id="voiceInputContainer" class="text-center py-2">
+                    <button id="btnRecord" class="btn btn-primary rounded-circle shadow-lg mic-btn"
+                        style="width: 70px; height: 70px; font-size: 24px; transition: all 0.3s ease;">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                    <p class="mb-0 mt-3 small fw-semibold text-muted" id="recordingStatus">Click to speak</p>
+                    <div id="liveTranscriptionContainer" class="d-none mt-3 p-3 bg-light rounded border text-start mx-auto" style="max-width: 90%; min-height: 60px; word-wrap: break-word;">
+                        <span id="liveTranscriptionText" class="text-muted fst-italic">Listening...</span>
+                    </div>
+                </div>
+
+                <!-- Text Input Controls -->
+                <div id="textInputContainer" class="d-none">
+                    <form id="textChatForm" class="d-flex gap-2 bg-light p-2 rounded-pill border shadow-sm">
+                        <input type="text" class="form-control border-0 bg-transparent shadow-none ms-2" id="chatTextInput"
+                            placeholder="Type your message here..." autocomplete="off">
+                        <button type="submit" class="btn btn-primary rounded-pill px-4 fw-semibold"><i class="fas fa-paper-plane me-sm-2"></i><span class="d-none d-sm-inline">Send</span></button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Performance Report Modal -->
+<div class="modal fade" id="performanceReportModal" tabindex="-1" aria-labelledby="performanceReportModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header bg-primary text-white border-0 py-3 px-4 rounded-top-4" style="background: linear-gradient(135deg, #0d6efd, #0dcaf0) !important;">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="fas fa-award fa-2x text-warning"></i>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="performanceReportModalLabel">Training Performance Report</h5>
+                        <small class="text-white opacity-75" id="repTimestamp">Completed: Just now</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 custom-scrollbar" id="printableReportArea">
+                <!-- Overview Header Card -->
+                <div class="card border-0 bg-light p-3 rounded-4 mb-4 shadow-sm">
+                    <div class="row align-items-center g-3">
+                        <div class="col-md-3 text-center border-end border-secondary border-opacity-25">
+                            <div class="d-inline-flex flex-column align-items-center justify-content-center bg-white rounded-circle shadow-sm p-3 mx-auto" style="width: 105px; height: 105px;">
+                                <h2 class="fw-bold text-primary mb-0" id="repOverallScore">88%</h2>
+                                <small class="text-muted fw-bold" style="font-size: 0.72rem;">OVERALL</small>
+                            </div>
+                            <div class="mt-2">
+                                <span class="badge bg-success rounded-pill px-3 py-1" id="repRating">Advanced</span>
+                            </div>
+                        </div>
+                        <div class="col-md-9">
+                            <div class="row g-2 small">
+                                <div class="col-sm-6">
+                                    <span class="text-muted"><i class="fas fa-tag me-1 text-primary"></i> Module:</span>
+                                    <strong class="d-block text-dark" id="repModule">Communication Skill Training</strong>
+                                </div>
+                                <div class="col-sm-6">
+                                    <span class="text-muted"><i class="fas fa-sliders-h me-1 text-primary"></i> Mode:</span>
+                                    <strong class="d-block text-dark" id="repMode">Voice Mode</strong>
+                                </div>
+                                <div class="col-sm-6">
+                                    <span class="text-muted"><i class="fas fa-language me-1 text-primary"></i> Input Language:</span>
+                                    <strong class="d-block text-dark" id="repInputLang">English</strong>
+                                </div>
+                                <div class="col-sm-6">
+                                    <span class="text-muted"><i class="fas fa-robot me-1 text-primary"></i> AI Response Lang:</span>
+                                    <strong class="d-block text-dark" id="repReplyLang">English</strong>
+                                </div>
+                                <div class="col-sm-6">
+                                    <span class="text-muted"><i class="fas fa-keyboard me-1 text-primary"></i> Total Word Count:</span>
+                                    <strong class="d-block text-dark" id="repWords">145 words</strong>
+                                </div>
+                                <div class="col-sm-6">
+                                    <span class="text-muted"><i class="fas fa-stopwatch me-1 text-primary"></i> Duration / Exchanges:</span>
+                                    <strong class="d-block text-dark" id="repDuration">5 mins • 4 exchanges</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Core Metrics Breakdown -->
+                <h6 class="fw-bold text-dark mb-3 border-bottom pb-2"><i class="fas fa-chart-bar text-primary me-2"></i>Core Competency Assessment</h6>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <div class="card p-3 rounded-3 border h-100 bg-white shadow-sm">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="small fw-bold text-secondary">Fluency & Cadence</span>
+                                <span class="small fw-bold text-success" id="repFluency">85%</span>
+                            </div>
+                            <div class="progress rounded-pill bg-light mb-2" style="height: 6px;">
+                                <div class="progress-bar bg-success rounded-pill" id="repFluencyBar" style="width: 85%"></div>
+                            </div>
+                            <p class="small text-muted mb-0" style="font-size: 0.8rem;">Pacing consistency, pause rhythm, and continuity.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card p-3 rounded-3 border h-100 bg-white shadow-sm">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="small fw-bold text-secondary">Grammar Accuracy</span>
+                                <span class="small fw-bold text-primary" id="repGrammar">88%</span>
+                            </div>
+                            <div class="progress rounded-pill bg-light mb-2" style="height: 6px;">
+                                <div class="progress-bar bg-primary rounded-pill" id="repGrammarBar" style="width: 88%"></div>
+                            </div>
+                            <p class="small text-muted mb-0" style="font-size: 0.8rem;">Tense alignment, clause structure & punctuation.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card p-3 rounded-3 border h-100 bg-white shadow-sm">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="small fw-bold text-secondary">Vocabulary Diversity</span>
+                                <span class="small fw-bold text-info" id="repVocab">85%</span>
+                            </div>
+                            <div class="progress rounded-pill bg-light mb-2" style="height: 6px;">
+                                <div class="progress-bar bg-info rounded-pill" id="repVocabBar" style="width: 85%"></div>
+                            </div>
+                            <p class="small text-muted mb-0" style="font-size: 0.8rem;">Lexical richness and professional word choice.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Strengths & Weaknesses -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <div class="card p-3 rounded-3 border border-success border-opacity-25 bg-success bg-opacity-10 h-100">
+                            <h6 class="fw-bold text-success mb-2"><i class="fas fa-check-circle me-1"></i> Key Strengths</h6>
+                            <ul class="ps-3 mb-0 small text-dark" id="repStrengthsList">
+                                <li>High conversational fluency and natural cadence.</li>
+                                <li>Strong grammatical accuracy and coherent sentence bounds.</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card p-3 rounded-3 border border-warning border-opacity-25 bg-warning bg-opacity-10 h-100">
+                            <h6 class="fw-bold text-warning-emphasis mb-2"><i class="fas fa-exclamation-triangle me-1"></i> Areas for Improvement</h6>
+                            <ul class="ps-3 mb-0 small text-dark" id="repWeaknessesList">
+                                <li>Hesitation during complex expressions; practice deliberate breathing pauses.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Personalized Action Plan -->
+                <div class="card p-3 rounded-3 border bg-light">
+                    <h6 class="fw-bold text-dark mb-2"><i class="fas fa-lightbulb text-warning me-2"></i>Personalized Actionable Practice Plan</h6>
+                    <ol class="ps-3 mb-0 small text-muted" id="repActionPlanList">
+                        <li class="mb-1">Practice speaking with deliberate 2-second pauses rather than verbal fillers.</li>
+                        <li class="mb-1">Incorporate sophisticated transitional phrases (e.g., furthermore, consequently).</li>
+                        <li>Review sentence structure to eliminate fragmented clauses.</li>
+                    </ol>
+                </div>
+            </div>
+            <div class="modal-footer bg-light border-0 py-3 px-4 rounded-bottom-4 justify-content-between">
+                <button type="button" class="btn btn-outline-secondary rounded-pill px-3" data-bs-dismiss="modal">Close</button>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-danger rounded-pill px-3" onclick="printReport()">
+                        <i class="fas fa-file-pdf me-1"></i> Print / Save PDF
+                    </button>
+                    <a href="{{ url_for('reports') }}" class="btn btn-primary rounded-pill px-4">
+                        <i class="fas fa-external-link-alt me-1"></i> View All Reports
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const ALL_LANGUAGES = [
+        { code: "en", name: "English" },
+        { code: "ta", name: "Tamil" },
+        { code: "hi", name: "Hindi" },
+        { code: "te", name: "Telugu" },
+        { code: "ml", name: "Malayalam" },
+        { code: "kn", name: "Kannada" },
+        { code: "bn", name: "Bengali" },
+        { code: "mr", name: "Marathi" },
+        { code: "gu", name: "Gujarati" },
+        { code: "pa", name: "Punjabi" },
+        { code: "ur", name: "Urdu" }
+    ];
+
+    let currentSessionData = {
+        totalWords: 0,
+        exchanges: 0,
+        fluencyScores: [],
+        grammarScores: [],
+        vocabScores: [],
+        lastAnalysis: null
+    };
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const languageSelect = document.getElementById('languageSelect');
+        const replyLanguageSelect = document.getElementById('replyLanguageSelect');
+        const activeLangBadge = document.getElementById('activeLangBadge');
+        const inputLangNotice = document.getElementById('inputLangNotice');
+
+        const voiceRadio = document.getElementById('inputVoice');
+        const textRadio = document.getElementById('inputText');
+
+        const voiceContainer = document.getElementById('voiceInputContainer');
+        const textContainer = document.getElementById('textInputContainer');
+
+        const textChatForm = document.getElementById('textChatForm');
+        const chatInput = document.getElementById('chatTextInput');
+        const chatContainer = document.getElementById('chatContainer');
+        const chatPlaceholder = document.getElementById('chatPlaceholder');
+        const assessmentPanel = document.getElementById('assessmentPanel');
+        const assessmentResults = document.getElementById('assessmentResults');
+
+        // Populate language dropdown options based on Input Mode
+        function updateInputLanguageOptions() {
+            if (textRadio.checked) {
+                // Requirement: In Text Mode, English is default & only input language
+                languageSelect.innerHTML = '<option value="en" selected>English (Default & Only Input Language)</option>';
+                languageSelect.value = 'en';
+                if (inputLangNotice) {
+                    inputLangNotice.className = 'mt-1 small text-primary';
+                    inputLangNotice.innerHTML = '<i class="fas fa-lock me-1"></i> English is the default & only input language in Text Mode';
+                }
+                activeLangBadge.textContent = 'English (Text Input)';
+                activeLangBadge.className = 'badge bg-primary rounded-pill px-3 py-2 border shadow-sm';
+                chatInput.placeholder = "Type your message in English...";
+            } else {
+                // Requirement: In Voice Mode, support multiple languages
+                let currentVal = languageSelect.value || 'en';
+                languageSelect.innerHTML = '<option value="" disabled>Choose a language...</option>';
+                ALL_LANGUAGES.forEach(lang => {
+                    const opt = document.createElement('option');
+                    opt.value = lang.code;
+                    opt.textContent = lang.name;
+                    if (lang.code === currentVal) opt.selected = true;
+                    languageSelect.appendChild(opt);
+                });
+                if (!languageSelect.value) languageSelect.value = 'en';
+                
+                if (inputLangNotice) {
+                    inputLangNotice.className = 'mt-1 small text-success';
+                    inputLangNotice.innerHTML = '<i class="fas fa-globe me-1"></i> Multilingual Voice Recognition Active';
+                }
+                const selectedOpt = languageSelect.options[languageSelect.selectedIndex];
+                activeLangBadge.textContent = selectedOpt ? selectedOpt.text : 'English';
+                activeLangBadge.className = 'badge bg-success rounded-pill px-3 py-2 border shadow-sm';
+            }
+        }
+
+        // Toggle input modes
+        function toggleInputMode() {
+            if (voiceRadio.checked) {
+                voiceContainer.classList.remove('d-none');
+                textContainer.classList.add('d-none');
+            } else {
+                voiceContainer.classList.add('d-none');
+                textContainer.classList.remove('d-none');
+            }
+            updateInputLanguageOptions();
+        }
+
+        voiceRadio.addEventListener('change', toggleInputMode);
+        textRadio.addEventListener('change', toggleInputMode);
+
+        // Language Select Change Handler
+        languageSelect.addEventListener('change', function () {
+            const selectedOpt = this.options[this.selectedIndex];
+            if (selectedOpt) {
+                activeLangBadge.textContent = selectedOpt.text;
+                activeLangBadge.className = 'badge bg-success rounded-pill px-3 py-2 border shadow-sm';
+            }
+            
+            // Sync AI Response Language to follow selected language
+            const selectedCode = this.value;
+            if (replyLanguageSelect) {
+                const optExists = Array.from(replyLanguageSelect.options).some(opt => opt.value === selectedCode);
+                if (optExists) replyLanguageSelect.value = selectedCode;
+            }
+        });
+
+        // Initialize defaults
+        updateInputLanguageOptions();
+
+        // Audio Player HTML Generator
+        function createAudioPlayerHtml(id) {
+            return `
+                <div class="audio-player bg-light p-2 rounded-pill d-flex align-items-center gap-2 mb-2 shadow-sm border border-light w-100" id="${id}" style="max-width: 420px; font-family: 'Inter', sans-serif;">
+                    <button class="btn btn-sm btn-primary rounded-circle shadow-sm play-btn" style="width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-play" style="font-size: 0.85rem; margin-left: 2px;"></i>
+                    </button>
+                    <button class="btn btn-sm btn-light rounded-circle shadow-sm text-secondary replay-btn border" style="width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center;" title="Replay">
+                        <i class="fas fa-redo" style="font-size: 0.85rem;"></i>
+                    </button>
+                    <span class="fw-semibold text-muted current-time" style="min-width: 35px; text-align: right; font-variant-numeric: tabular-nums; font-size: 0.85rem;">0:00</span>
+                    <input type="range" class="form-range flex-grow-1 seek-bar" value="0" min="0" max="100" step="1" style="cursor: pointer;">
+                    <span class="fw-semibold text-muted total-time" style="min-width: 35px; font-variant-numeric: tabular-nums; font-size: 0.85rem;">0:00</span>
+                </div>
+            `;
+        }
+
+        // Format Dynamic AI Feedback HTML
+        function formatAiFeedbackHtml(analysis) {
+            const originalText = analysis.original_text || "";
+            const correctedText = analysis.corrected_text || originalText;
+            const proVersion = analysis.professional_polish || "";
+            const explanation = analysis.explanation || "Solid structure with clear flow.";
+            const hasMistakes = analysis.has_mistakes === true;
+            const mistakes = analysis.mistakes || [];
+            const recommendations = analysis.recommendations || [
+                "Practice consistent verb tenses throughout your sentences.",
+                "Incorporate transition phrases to connect your flow of thought.",
+                "Maintain steady cadence and clear word pronunciation."
+            ];
+
+            let mistakesHtml = '';
+            if (hasMistakes && mistakes.length > 0) {
+                mistakesHtml = `
+                <div class="mb-3">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="text-danger fw-bold"><i class="fas fa-exclamation-triangle me-1"></i> Identified Mistakes (${mistakes.length})</span>
+                        <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1">Correction Required</span>
+                    </div>
+                    ${mistakes.map((m, idx) => `
+                    <div class="bg-white p-3 rounded-3 mb-2 border-start border-4 border-danger shadow-sm">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="badge bg-danger text-white"><i class="fas fa-times-circle me-1"></i> ${m.category || 'Grammar Rule'}</span>
+                            <small class="text-muted fw-semibold">Mistake #${idx + 1}</small>
+                        </div>
+                        <div class="p-2 bg-light rounded mb-2">
+                            <div class="text-danger small mb-1">
+                                <strong>What you said:</strong> <del class="fw-semibold">${m.what_said}</del>
+                            </div>
+                            <div class="text-success small">
+                                <strong>How to correct:</strong> <span class="fw-bold"><i class="fas fa-arrow-right text-muted mx-1"></i> ${m.corrected_phrase}</span>
+                            </div>
+                        </div>
+                        <div class="small text-muted" style="font-size: 0.85rem;">
+                            <p class="mb-1 text-dark"><strong>Why it was incorrect:</strong> ${m.why_incorrect}</p>
+                            <p class="mb-0 text-primary fw-semibold"><i class="fas fa-lightbulb text-warning me-1"></i> Rule: <span class="text-dark fw-normal">${m.how_to_correct}</span></p>
+                        </div>
+                    </div>
+                    `).join('')}
+                </div>`;
+            } else {
+                mistakesHtml = `
+                <div class="bg-white p-3 rounded-3 mb-3 border-start border-4 border-success shadow-sm">
+                    <div class="d-flex align-items-center gap-2 text-success fw-bold mb-1">
+                        <i class="fas fa-check-circle fa-lg"></i>
+                        <span>No Grammatical Mistakes Detected!</span>
+                    </div>
+                    <p class="text-muted small mb-0">Your sentence follows accurate grammatical rules, good syntax, and natural flow. Great job!</p>
+                </div>`;
+            }
+
+            let proHtml = '';
+            if (proVersion && proVersion.trim() !== "" && proVersion !== correctedText) {
+                proHtml = `
+                <div class="mb-3">
+                    <div class="text-dark fw-bold mb-1"><i class="fas fa-gem text-primary me-1"></i> <strong>Executive & Professional Polish</strong></div>
+                    <div class="p-3 bg-light rounded-3 border border-primary border-opacity-25 text-dark shadow-sm">
+                        <p class="mb-1 fw-semibold text-primary" style="font-size: 0.95rem;">"${proVersion}"</p>
+                        <small class="text-muted d-block"><i class="fas fa-info-circle me-1"></i> Use this elevated version in professional interviews or corporate meetings for higher impact.</small>
+                    </div>
+                </div>`;
+            }
+
+            let recsHtml = recommendations.map(r => `<li class="mb-1">${r}</li>`).join('');
+
+            return `
+            <div class="ai-feedback mt-2 text-start" style="font-size: 0.95rem; line-height: 1.5;">
+                <div class="mb-1 text-dark"><i class="fas fa-clipboard-check text-success me-1"></i> <strong>Clarity & Fluency Breakdown</strong></div>
+                <p class="text-muted small mb-3">${analysis.ai_greeting || "Your message was analyzed with real-time NLP."}</p>
+                
+                <!-- 1. Mistakes & Corrections Breakdown -->
+                ${mistakesHtml}
+
+                <!-- 2. Grammatically Corrected Sentence -->
+                <div class="mb-3">
+                    <div class="mb-1 text-dark"><i class="fas fa-check-double text-success me-1"></i> <strong>${analysis.corrected_intro || "Corrected Sentence"}</strong></div>
+                    <div class="bg-light p-3 rounded-3 small border border-success border-opacity-25 shadow-sm text-dark fst-italic">
+                        "${correctedText}"
+                    </div>
+                </div>
+
+                <!-- 3. Professional Polish Recommendation -->
+                ${proHtml}
+
+                <!-- 4. Coaching Insights -->
+                <div class="bg-white p-3 rounded-3 mb-3 border shadow-sm small text-muted">
+                    <div class="text-dark fw-bold mb-1"><i class="fas fa-comment-dots text-primary me-1"></i> Coaching Insights</div>
+                    <p class="mb-0 text-dark">${explanation}</p>
+                </div>
+
+                <!-- 5. Actionable Suggestions -->
+                <div class="mb-1 text-dark"><i class="fas fa-lightbulb text-warning me-1"></i> <strong>Actionable Suggestions to Improve Communication</strong></div>
+                <ul class="text-muted ps-3 mb-0 mt-1 small bg-light p-3 rounded-3 border border-warning border-opacity-25">
+                    ${recsHtml}
+                </ul>
+            </div>
+            `;
+        }
+
+        // Real-Time NLP Processing Caller
+        async function processUserCommunication(text) {
+            const inputMode = document.querySelector('input[name="inputMode"]:checked').value;
+            const outputMode = document.querySelector('input[name="outputMode"]:checked').value;
+            const inputLang = inputMode === 'text' ? 'en' : (languageSelect.value || 'en');
+            const replyLang = replyLanguageSelect.value || inputLang;
+
+            if (chatPlaceholder) chatPlaceholder.style.display = 'none';
+
+            // Append User Message
+            appendMessage('user', text);
+            if (chatInput) chatInput.value = '';
+
+            // Show Processing
+            appendMessage('system', 'Analyzing input with AI language engine...', true);
+            assessmentPanel.classList.remove('d-none');
+            assessmentResults.classList.add('d-none');
+            assessmentPanel.innerHTML = '<i class="fas fa-spinner fa-spin fa-3x mb-2 text-primary" style="opacity:0.5;"></i><p class="small mb-0">Processing new input...</p>';
+
+            try {
+                const response = await fetch('/api/communication/process', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text: text,
+                        input_mode: inputMode,
+                        input_lang: inputLang,
+                        reply_lang: replyLang
+                    })
+                });
+
+                const data = await response.json();
+                const analysis = data.analysis;
+
+                // Update session state
+                currentSessionData.totalWords += analysis.word_count;
+                currentSessionData.exchanges += 1;
+                currentSessionData.fluencyScores.push(analysis.fluency);
+                currentSessionData.grammarScores.push(analysis.grammar);
+                currentSessionData.vocabScores.push(analysis.vocabulary);
+                currentSessionData.lastAnalysis = analysis;
+
+                // Remove loading spinner
+                const sysLoading = document.getElementById('sys-loading');
+                if (sysLoading) sysLoading.remove();
+
+                // Update Real-Time Assessment Panel
+                document.getElementById('liveFluencyVal').textContent = `${analysis.fluency}%`;
+                document.getElementById('liveFluencyBar').style.width = `${analysis.fluency}%`;
+                document.getElementById('liveGrammarVal').textContent = `${analysis.grammar}%`;
+                document.getElementById('liveGrammarBar').style.width = `${analysis.grammar}%`;
+                document.getElementById('liveVocabVal').textContent = `${analysis.vocabulary}%`;
+                document.getElementById('liveVocabBar').style.width = `${analysis.vocabulary}%`;
+                document.getElementById('improvementTip').textContent = analysis.tip;
+
+                assessmentPanel.classList.add('d-none');
+                assessmentResults.classList.remove('d-none');
+
+                // Render AI Response based on Output Mode
+                const langLabel = analysis.reply_lang_name || replyLang;
+                const langBadge = `<span class="badge bg-secondary mb-2">${langLabel} Response</span>`;
+
+                if (outputMode === 'voice') {
+                    const playerId = `ai-player-${Date.now()}-${replyLang}`;
+                    const loadingAudioHtml = `
+                        <div id="loading-${playerId}" class="d-flex align-items-center gap-2 mb-2 text-primary small fw-semibold">
+                            <i class="fas fa-spinner fa-spin"></i> Generating ${langLabel} Audio (.mp3)...
+                        </div>
+                    `;
+                    appendMessage('ai', loadingAudioHtml, false, true);
+
+                    const speechText = `${analysis.ai_greeting} ${analysis.explanation}`;
+                    const ttsRes = await fetch('/api/tts', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text: speechText, lang: replyLang })
+                    });
+                    const ttsData = await ttsRes.json();
+
+                    const loadingEl = document.getElementById(`loading-${playerId}`);
+                    if (loadingEl) {
+                        const bubble = loadingEl.closest('.mb-4');
+                        if (bubble) bubble.remove();
+                    }
+
+                    if (ttsData.status === 'success') {
+                        const audioHtml = `
+                            ${langBadge}
+                            ${createAudioPlayerHtml(playerId)}
+                            <hr class="text-muted opacity-25 my-2">
+                            ${formatAiFeedbackHtml(analysis)}
+                        `;
+                        appendMessage('ai', audioHtml, false, true);
+                        setTimeout(() => new NativeAudioPlayer(playerId, ttsData.audio_url, false), 50);
+                    } else {
+                        appendMessage('ai', `${langBadge}${formatAiFeedbackHtml(analysis)}`, false, true);
+                    }
+                } else {
+                    const fullTextHtml = langBadge + formatAiFeedbackHtml(analysis);
+                    appendMessage('ai', fullTextHtml, false, true);
+                }
+
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            } catch (err) {
+                console.error("Analysis Error:", err);
+                const sysLoading = document.getElementById('sys-loading');
+                if (sysLoading) sysLoading.remove();
+                appendMessage('ai', '<div class="text-danger small"><i class="fas fa-exclamation-triangle"></i> Network or server error processing request.</div>', false, true);
+            }
+        }
+
+        // Text Form Submit
+        textChatForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const text = chatInput.value.trim();
+            if (!text) return;
+            processUserCommunication(text);
+        });
+
+        // Speech Recognition Setup
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition = null;
+        let finalTranscript = '';
+        let interimTranscript = '';
+        const btnRecord = document.getElementById('btnRecord');
+        const recordingStatus = document.getElementById('recordingStatus');
+        let isRecording = false;
+
+        const SPEECH_LANG_MAP = {
+            'en': 'en-US',
+            'ta': 'ta-IN',
+            'hi': 'hi-IN',
+            'te': 'te-IN',
+            'ml': 'ml-IN',
+            'kn': 'kn-IN',
+            'bn': 'bn-IN',
+            'mr': 'mr-IN',
+            'gu': 'gu-IN',
+            'pa': 'pa-IN',
+            'ur': 'ur-PK'
+        };
+
+        function initRecognition() {
+            if (!SpeechRecognition) return null;
+            const rec = new SpeechRecognition();
+            rec.continuous = true;
+            rec.interimResults = true;
+            
+            const selectedLang = languageSelect.value || 'en';
+            rec.lang = SPEECH_LANG_MAP[selectedLang] || 'en-US';
+
+            rec.onstart = function () {
+                isRecording = true;
+                btnRecord.classList.add('mic-pulsating', 'bg-danger', 'border-danger');
+                btnRecord.classList.remove('btn-primary');
+                recordingStatus.innerHTML = '<span class="text-danger fw-bold"><i class="fas fa-circle ms-1 blink"></i> Listening... Speak now (click mic when done)</span>';
+                if (chatPlaceholder) chatPlaceholder.style.display = 'none';
+
+                finalTranscript = '';
+                interimTranscript = '';
+                const liveContainer = document.getElementById('liveTranscriptionContainer');
+                if (liveContainer) {
+                    liveContainer.classList.remove('d-none');
+                    liveContainer.innerHTML = '<span id="liveTranscriptionText" class="text-muted fst-italic"><i class="fas fa-microphone text-primary me-1"></i> Listening to your voice...</span>';
+                }
+            };
+
+            rec.onresult = function (event) {
+                interimTranscript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript + ' ';
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
+                }
+                const liveContainer = document.getElementById('liveTranscriptionContainer');
+                if (liveContainer) {
+                    const dispText = (finalTranscript + ' ' + interimTranscript).trim();
+                    if (dispText) {
+                        liveContainer.innerHTML = `<span class="text-dark fw-semibold" style="font-size: 1.05rem;">${finalTranscript}</span> <span class="text-primary opacity-75 fst-italic">${interimTranscript}</span>`;
+                    }
+                }
+            };
+
+            rec.onerror = function (event) {
+                console.warn("Speech recognition notice/error:", event.error);
+                if (event.error === 'no-speech') {
+                    recordingStatus.innerHTML = '<span class="text-warning small"><i class="fas fa-microphone me-1"></i> Listening... Please speak clearly into your microphone.</span>';
+                    return;
+                }
+                if (event.error === 'not-allowed') {
+                    alert("Microphone access was denied. Please allow microphone permissions in your browser to use Voice Mode.");
+                    stopRecordingUI();
+                    return;
+                }
+                if (event.error === 'network') {
+                    recordingStatus.innerHTML = '<span class="text-danger small">Speech recognition network error. Please try again or use Text mode.</span>';
+                    stopRecordingUI();
+                    return;
+                }
+                stopRecordingUI();
+            };
+
+            rec.onend = function () {
+                if (isRecording) {
+                    processAudioResult();
+                }
+            };
+
+            return rec;
+        }
+
+        function stopRecordingUI() {
+            isRecording = false;
+            btnRecord.classList.remove('mic-pulsating', 'bg-danger', 'border-danger');
+            btnRecord.classList.add('btn-primary');
+            recordingStatus.innerHTML = 'Click to speak';
+        }
+
+        function processAudioResult() {
+            const combinedText = (finalTranscript + ' ' + interimTranscript).trim();
+            stopRecordingUI();
+            if (combinedText.length > 0) {
+                const liveContainer = document.getElementById('liveTranscriptionContainer');
+                if (liveContainer) {
+                    liveContainer.innerHTML = `<span class="text-success"><i class="fas fa-spinner fa-spin me-2"></i>Processing: "${combinedText}"</span>`;
+                }
+                processUserCommunication(combinedText);
+            } else {
+                const liveContainer = document.getElementById('liveTranscriptionContainer');
+                if (liveContainer) liveContainer.classList.add('d-none');
+                recordingStatus.innerHTML = '<span class="text-muted small">No speech detected. Click mic to speak.</span>';
+            }
+        }
+
+        btnRecord.addEventListener('click', function () {
+            if (!SpeechRecognition) {
+                alert("Your browser does not support Speech Recognition. Please use Chrome/Edge or switch to Text Mode.");
+                textRadio.click();
+                return;
+            }
+
+            if (!isRecording) {
+                try {
+                    recognition = initRecognition();
+                    if (recognition) {
+                        recognition.start();
+                    }
+                } catch (e) {
+                    console.error("Recognition start error:", e);
+                    stopRecordingUI();
+                }
+            } else {
+                isRecording = false;
+                if (recognition) {
+                    try { recognition.stop(); } catch(e) {}
+                }
+                recordingStatus.innerHTML = '<i class="fas fa-spinner fa-spin text-primary"></i> Processing voice input...';
+                processAudioResult();
+            }
+        });
+
+        // Append message to Chat
+        function appendMessage(sender, text, isSystem = false, isHtml = false) {
+            const div = document.createElement('div');
+            div.className = 'mb-4 d-flex ' + (sender === 'user' ? 'justify-content-end' : 'justify-content-start');
+            if (isSystem) div.id = 'sys-loading';
+
+            let bubbleClass = '';
+            if (isSystem) {
+                bubbleClass = 'bg-transparent text-muted fst-italic';
+            } else if (sender === 'user') {
+                bubbleClass = 'chat-bubble-user text-white shadow-sm';
+            } else if (sender === 'ai') {
+                bubbleClass = 'chat-bubble-ai border shadow-sm';
+            }
+
+            let iconHtml = '';
+            if (sender === 'ai' && !isSystem) {
+                iconHtml = `
+                <div class="me-3 mt-1 flex-shrink-0">
+                    <div class="bg-light-primary text-primary rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 36px; height: 36px;">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                </div>`;
+            } else if (isSystem) {
+                iconHtml = '<div class="spinner-border spinner-border-sm me-2 text-primary" role="status"></div>';
+            }
+
+            const contentHtml = isHtml ? text : `<p class="mb-0" style="line-height: 1.5; font-size: 0.95rem;">${text}</p>`;
+
+            div.innerHTML = `
+                ${sender === 'ai' ? iconHtml : ''}
+                <div class="p-3 ${bubbleClass}" style="max-width: 82%;">
+                    ${isSystem ? iconHtml + text : contentHtml}
+                </div>
+            `;
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Native Audio Player
+        class NativeAudioPlayer {
+            constructor(containerId, audioUrl, autoplay = false) {
+                this.container = document.getElementById(containerId);
+                if (!this.container) return;
+                
+                this.audioUrl = audioUrl;
+                this.audio = new Audio(this.audioUrl);
+                
+                if (typeof applyGlobalVoiceType === 'function' && typeof globalVoiceTypeFallback !== 'undefined') {
+                    applyGlobalVoiceType(this.audio, globalVoiceTypeFallback);
+                }
+                
+                this.playBtn = this.container.querySelector('.play-btn');
+                this.playIcon = this.playBtn.querySelector('i');
+                this.replayBtn = this.container.querySelector('.replay-btn');
+                this.currentTimeEl = this.container.querySelector('.current-time');
+                this.totalTimeEl = this.container.querySelector('.total-time');
+                this.seekBar = this.container.querySelector('.seek-bar');
+                
+                this.init();
+                if (autoplay) {
+                    this.audio.play().catch(e => console.warn('Autoplay prevented', e));
+                }
+            }
+
+            formatTime(secs) {
+                if (isNaN(secs)) return "0:00";
+                const m = Math.floor(secs / 60);
+                const s = Math.floor(secs % 60);
+                return `${m}:${s < 10 ? '0' : ''}${s}`;
+            }
+
+            updateUI() {
+                this.currentTimeEl.textContent = this.formatTime(this.audio.currentTime);
+                if (this.audio.duration && !isNaN(this.audio.duration)) {
+                    this.totalTimeEl.textContent = this.formatTime(this.audio.duration);
+                    const progress = (this.audio.currentTime / this.audio.duration) * 100;
+                    if (document.activeElement !== this.seekBar) {
+                        this.seekBar.value = progress;
+                    }
+                }
+                if (!this.audio.paused && !this.audio.ended) {
+                    this.playIcon.className = 'fas fa-pause';
+                } else {
+                    this.playIcon.className = 'fas fa-play';
+                }
+            }
+
+            async play() {
+                try {
+                    await this.audio.play();
+                    this.updateUI();
+                } catch (e) {
+                    console.error("Play blocked", e);
+                }
+            }
+
+            pause() {
+                this.audio.pause();
+                this.updateUI();
+            }
+
+            init() {
+                this.audio.addEventListener('timeupdate', () => this.updateUI());
+                this.audio.addEventListener('loadedmetadata', () => this.updateUI());
+                this.audio.addEventListener('ended', () => this.updateUI());
+                
+                this.playBtn.addEventListener('click', () => {
+                    if (this.audio.paused || this.audio.ended) this.play();
+                    else this.pause();
+                });
+                
+                this.replayBtn.addEventListener('click', () => {
+                    this.audio.currentTime = 0;
+                    this.play();
+                });
+                
+                this.seekBar.addEventListener('input', (e) => {
+                    if (this.audio.duration && !isNaN(this.audio.duration)) {
+                        this.audio.currentTime = (e.target.value / 100) * this.audio.duration;
+                    }
+                });
+            }
+        }
+    });
+
+    // Complete Session & Generate Detailed Report Function
+    async function triggerCompleteSession() {
+        const inputMode = document.querySelector('input[name="inputMode"]:checked').value;
+        const inputLang = inputMode === 'text' ? 'English' : (document.getElementById('languageSelect').options[document.getElementById('languageSelect').selectedIndex]?.text || 'English');
+        const replyLang = document.getElementById('replyLanguageSelect').options[document.getElementById('replyLanguageSelect').selectedIndex]?.text || 'English';
+
+        try {
+            const res = await fetch('/api/communication/complete_session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    mode: inputMode,
+                    input_lang: inputLang,
+                    reply_lang: replyLang,
+                    total_words: currentSessionData.totalWords || 95,
+                    total_exchanges: currentSessionData.exchanges || 3
+                })
+            });
+
+            const data = await res.json();
+
+            // Populate Report Modal
+            document.getElementById('repTimestamp').textContent = `Session ID: ${data.session_id} • ${data.date}`;
+            document.getElementById('repOverallScore').textContent = `${data.overall_score}%`;
+            document.getElementById('repRating').textContent = data.performance_rating;
+            document.getElementById('repMode').textContent = `${data.mode} Mode`;
+            document.getElementById('repInputLang').textContent = data.input_language;
+            document.getElementById('repReplyLang').textContent = data.reply_language;
+            document.getElementById('repWords').textContent = `${data.total_words} words`;
+            document.getElementById('repDuration').textContent = `${data.duration_mins} mins • ${data.total_exchanges} exchanges`;
+
+            document.getElementById('repFluency').textContent = `${data.fluency_score}%`;
+            document.getElementById('repFluencyBar').style.width = `${data.fluency_score}%`;
+            document.getElementById('repGrammar').textContent = `${data.grammar_score}%`;
+            document.getElementById('repGrammarBar').style.width = `${data.grammar_score}%`;
+            document.getElementById('repVocab').textContent = `${data.vocabulary_score}%`;
+            document.getElementById('repVocabBar').style.width = `${data.vocabulary_score}%`;
+
+            // Strengths List
+            const strengthsUl = document.getElementById('repStrengthsList');
+            strengthsUl.innerHTML = data.strengths.map(s => `<li>${s}</li>`).join('');
+
+            // Weaknesses List
+            const weaknessesUl = document.getElementById('repWeaknessesList');
+            weaknessesUl.innerHTML = data.weaknesses.map(w => `<li>${w}</li>`).join('');
+
+            // Action Plan List
+            const actionPlanOl = document.getElementById('repActionPlanList');
+            actionPlanOl.innerHTML = data.recommendations.map(r => `<li class="mb-1">${r}</li>`).join('');
+
+            // Show Modal
+            const reportModal = new bootstrap.Modal(document.getElementById('performanceReportModal'));
+            reportModal.show();
+
+        } catch (e) {
+            console.error("Session completion error:", e);
+            alert("Error generating performance report. Please try again.");
+        }
+    }
+
+    // Print / PDF Generation
+    function printReport() {
+        const reportContent = document.getElementById('printableReportArea').innerHTML;
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>AI Training Performance Report</title>
+                    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+                    <style>
+                        body { font-family: 'Inter', sans-serif; padding: 25px; color: #212529; }
+                        @media print { .no-print { display: none; } }
+                    </style>
+                </head>
+                <body>
+                    <div class="container my-3">
+                        <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
+                            <div>
+                                <h3 class="fw-bold text-primary mb-1">AI Communication Skill & Interview Trainer</h3>
+                                <p class="text-muted mb-0">Official Detailed Performance Evaluation Report</p>
+                            </div>
+                        </div>
+                        ${reportContent}
+                        <div class="mt-4 pt-3 border-top text-center text-muted small">
+                            Generated by AI Skill Development System • Keep practicing daily to boost speaking confidence.
+                        </div>
+                    </div>
+                    <script>
+                        window.onload = function() { window.print(); }
+                    <\/script>
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+    }
+</script>
+{% endblock %}

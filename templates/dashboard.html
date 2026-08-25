@@ -1,0 +1,376 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - AI Skill Trainer{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+    <div>
+        <h2 class="fw-bold mb-1 text-dark">Dashboard</h2>
+        <p class="text-muted mb-0">Track your performance, insights, and daily goals</p>
+    </div>
+</div>
+
+<!-- 1. KPI CARDS -->
+<div class="row g-3 mb-4">
+    <div class="col-xl-3 col-sm-6">
+        <div class="card card-custom border-0 h-100 p-3 bg-white shadow-sm">
+            <div class="d-flex align-items-center">
+                <div class="flex-shrink-0 bg-light-primary p-3 rounded">
+                    <i class="fas fa-check-circle text-primary fa-lg"></i>
+                </div>
+                <div class="flex-grow-1 ms-3">
+                    <h6 class="text-muted mb-1 small text-uppercase">Total Sessions</h6>
+                    <h3 class="fw-bold mb-0" id="dashTotalSessions">{{ stats.total_sessions }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-sm-6">
+        <div class="card card-custom border-0 h-100 p-3 bg-white shadow-sm">
+            <div class="d-flex align-items-center">
+                <div class="flex-shrink-0 bg-light-secondary p-3 rounded">
+                    <i class="far fa-clock text-secondary fa-lg"></i>
+                </div>
+                <div class="flex-grow-1 ms-3">
+                    <h6 class="text-muted mb-1 small text-uppercase">Total Speaking Time</h6>
+                    <h3 class="fw-bold mb-0" id="dashTotalTime">{{ stats.total_speaking_time }}<span class="fs-6 text-muted fw-normal ms-1">min</span></h3>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-sm-6">
+        <div class="card card-custom border-0 h-100 p-3 bg-white shadow-sm">
+            <div class="d-flex align-items-center">
+                <div class="flex-shrink-0 bg-light-success p-3 rounded">
+                    <i class="fas fa-star text-success fa-lg"></i>
+                </div>
+                <div class="flex-grow-1 ms-3">
+                    <h6 class="text-muted mb-1 small text-uppercase">Avg. Confidence</h6>
+                    <h3 class="fw-bold mb-0 text-success" id="dashAvgConfidence">{{ stats.avg_confidence }}%</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-sm-6">
+        <div class="card card-custom border-0 h-100 p-3 bg-white shadow-sm">
+            <div class="d-flex align-items-center">
+                <div class="flex-shrink-0 bg-light-info p-3 rounded">
+                    <i class="fas fa-arrow-trend-up text-info fa-lg"></i>
+                </div>
+                <div class="flex-grow-1 ms-3">
+                    <h6 class="text-muted mb-1 small text-uppercase">Improvement</h6>
+                    <h3 class="fw-bold mb-0 text-info" id="dashImprovement">{{ stats.improvement }} <span class="fs-6 text-muted fw-normal ms-1">weekly</span></h3>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 2. AI INSIGHTS & DAILY GOAL -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="card card-custom border-0 h-100 bg-white shadow-sm">
+            <div class="card-header bg-white border-0 pt-4 pb-0 d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0"><i class="fas fa-brain text-primary me-2"></i>AI Feedback Summary</h6>
+            </div>
+            <div class="card-body d-flex flex-column justify-content-center">
+                <div class="d-flex align-items-start mb-3">
+                    <i class="fas fa-arrow-up text-success mt-1 me-2"></i>
+                    <div>
+                        <span class="fw-semibold text-dark">Top Strength:</span> <span class="text-muted" id="dashTopStrength">{{ stats.ai_feedback.top_strength }}</span>
+                    </div>
+                </div>
+                <div class="d-flex align-items-start mb-3">
+                    <i class="fas fa-arrow-down text-danger mt-1 me-2"></i>
+                    <div>
+                        <span class="fw-semibold text-dark">Top Weakness:</span> <span class="text-muted" id="dashTopWeakness">{{ stats.ai_feedback.top_weakness }}</span>
+                    </div>
+                </div>
+                <div class="d-flex align-items-start mb-0">
+                    <i class="fas fa-bullseye text-warning mt-1 me-2"></i>
+                    <div>
+                        <span class="fw-semibold text-dark">Suggested Focus:</span> <span class="text-muted" id="dashSuggestedFocus">{{ stats.ai_feedback.suggested_focus }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <div class="card card-custom border-0 h-100 bg-white shadow-sm">
+            <div class="card-header bg-white border-0 pt-4 pb-0 d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0"><i class="fas fa-flag-checkered text-success me-2"></i>Daily Goal Progress</h6>
+                <span class="badge bg-light-danger text-danger border border-danger" id="dashStreak"><i class="fas fa-fire me-1"></i> {{ stats.daily_goal.streak_days }} Day Streak</span>
+            </div>
+            <div class="card-body d-flex flex-column justify-content-center">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="fw-semibold text-dark">Today's Target</span>
+                    <span class="fw-bold text-primary" id="dashTodayTarget">{{ stats.daily_goal.today_minutes }} / {{ stats.daily_goal.target_minutes }} mins</span>
+                </div>
+                <div class="progress mb-3" style="height: 12px; border-radius: 10px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" id="dashGoalBar" role="progressbar" style="width: {{ stats.daily_goal.progress_percent }}%" aria-valuenow="{{ stats.daily_goal.progress_percent }}" aria-valuemin="0" aria-valuemax="100">{{ stats.daily_goal.progress_percent }}%</div>
+                </div>
+                <p class="text-muted small text-center mb-0 mt-2" id="dashGoalText"><i class="fas fa-info-circle me-1"></i> <strong>{{ stats.daily_goal.minutes_left }} mins left</strong> to reach your daily goal. Keep it up! 🔥</p>
+                <div class="mt-4 text-center">
+                     <a href="{{ url_for('communication') }}" class="btn btn-outline-primary btn-sm rounded-pill px-4 hover-lift">Continue Practice</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 3. ACTIVITY CHART & VOICE ANALYTICS -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="card card-custom border-0 h-100 bg-white shadow-sm">
+            <div class="card-header bg-white border-0 pt-4 pb-0">
+                <h6 class="fw-bold mb-0"><i class="fas fa-chart-pie text-warning me-2"></i>Practice Distribution</h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-container" style="position: relative; height:220px;">
+                    <canvas id="activityChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card card-custom border-0 h-100 bg-white shadow-sm">
+            <div class="card-header bg-white border-0 pt-4 pb-2">
+                <h6 class="fw-bold mb-0"><i class="fas fa-microphone-lines text-secondary me-2"></i>Voice Analytics Snapshot</h6>
+            </div>
+            <div class="card-body d-flex flex-column justify-content-center p-3 gap-2">
+                <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded hover-lift">
+                    <div>
+                        <h6 class="mb-0 text-dark fw-semibold">Speaking Speed</h6>
+                        <small class="text-muted">Words per minute</small>
+                    </div>
+                    <div class="text-end">
+                        <h4 class="mb-0 fw-bold text-primary" id="dashSpeakingSpeed">{{ stats.voice_analytics.speaking_speed }}<small class="fs-6 text-muted fw-normal"> wpm</small></h4>
+                        <small class="{% if stats.voice_analytics.speaking_speed > 0 %}text-success{% else %}text-muted{% endif %}" id="dashSpeedStatus"><i class="fas fa-arrow-up"></i> {{ stats.voice_analytics.speed_status }}</small>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded hover-lift">
+                    <div>
+                        <h6 class="mb-0 text-dark fw-semibold">Pause Frequency</h6>
+                        <small class="text-muted">Pauses > 2s</small>
+                    </div>
+                    <div class="text-end">
+                        <h4 class="mb-0 fw-bold text-dark" id="dashPauseFreq">{{ stats.voice_analytics.pause_frequency }}<small class="fs-6 text-muted fw-normal"> /session</small></h4>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded hover-lift border-start border-4 border-danger">
+                    <div>
+                        <h6 class="mb-0 text-dark fw-semibold">Filler Words</h6>
+                        <small class="text-muted">um, ah, like</small>
+                    </div>
+                    <div class="text-end">
+                        <h4 class="mb-0 fw-bold {% if stats.voice_analytics.filler_words > 0 %}text-danger{% else %}text-muted{% endif %}" id="dashFillerWords">{{ stats.voice_analytics.filler_words }}</h4>
+                        <small class="{% if stats.voice_analytics.filler_words > 0 %}text-danger{% else %}text-muted{% endif %}" id="dashFillerStatus"><i class="fas fa-arrow-down"></i> {{ stats.voice_analytics.filler_status }}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 4. RECENT ACTIVITY & TIME HEATMAP -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-7">
+        <div class="card card-custom border-0 h-100 bg-white shadow-sm overflow-hidden">
+            <div class="card-header bg-white border-0 pt-4 pb-3 d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0"><i class="fas fa-list-ul text-dark me-2"></i>Recent Activity</h6>
+                <a href="{{ url_for('reports') }}" class="btn btn-sm btn-light text-primary fw-semibold">View Full History</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light text-muted small">
+                            <tr>
+                                <th class="ps-4">Date & Time</th>
+                                <th>Module</th>
+                                <th>Duration</th>
+                                <th class="text-center">Score</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentActivityTableBody">
+                            {% if stats.recent_sessions and stats.recent_sessions|length > 0 %}
+                                {% for act in stats.recent_sessions %}
+                                <tr>
+                                    <td class="ps-4">
+                                        <span class="d-block fw-semibold text-dark">{{ act.date_label }}</span>
+                                        <span class="small text-muted">{{ act.time_label }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge {% if act.module_type == 'Communication' %}bg-light-primary text-primary{% elif 'Interview' in act.module_type %}bg-light-success text-success{% else %}bg-light-secondary text-secondary{% endif %} px-2 py-1">
+                                            <i class="fas {% if act.module_type == 'Communication' %}fa-comments{% elif 'Interview' in act.module_type %}fa-user-tie{% else %}fa-microphone{% endif %} me-1"></i> {{ act.module_type }}
+                                        </span>
+                                    </td>
+                                    <td class="text-muted small">{{ act.duration_mins }} mins</td>
+                                    <td class="text-center">
+                                        <span class="badge {% if act.overall_score >= 85 %}bg-success{% elif act.overall_score >= 70 %}bg-primary{% else %}bg-warning text-dark{% endif %} rounded-pill px-3">
+                                            {{ act.overall_score }}%
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-4">
+                                        <i class="fas fa-folder-open fa-2x mb-2 opacity-50 d-block"></i>
+                                        <span>No recent activity found.</span>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-5">
+        <div class="card card-custom border-0 h-100 bg-white shadow-sm">
+            <div class="card-header bg-white border-0 pt-4 pb-3">
+                <h6 class="fw-bold mb-0"><i class="fas fa-calendar-alt text-primary me-2"></i>Time Heatmap (Weekly Practice)</h6>
+            </div>
+            <div class="card-body d-flex flex-column justify-content-center align-items-center">
+                <!-- Heatmap representation for Weekly Tracking -->
+                <div class="w-100 mb-3 d-flex justify-content-between text-muted small px-2">
+                    <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+                </div>
+                <!-- Heatmap blocks simulation -->
+                <div class="d-flex justify-content-between w-100 px-2 gap-2 mb-4" style="height: 60px;" id="heatmapContainer">
+                    {% for day in stats.heatmap %}
+                    <div class="rounded flex-grow-1 heatmap-col" style="background-color: rgba(13, 110, 253, {{ day.opacity }});{% if day.is_zero %} border: 1px dashed #dee2e6;{% endif %}" title="{{ day.name }} ({{ day.date }}): {{ day.mins }} mins"></div>
+                    {% endfor %}
+                </div>
+                
+                <div class="d-flex align-items-center justify-content-center w-100 small text-muted">
+                    <span>Less</span>
+                    <div class="mx-2 d-flex gap-1">
+                        <div class="rounded" style="width: 15px; height: 15px; background-color: rgba(13, 110, 253, 0.1);"></div>
+                        <div class="rounded" style="width: 15px; height: 15px; background-color: rgba(13, 110, 253, 0.4);"></div>
+                        <div class="rounded" style="width: 15px; height: 15px; background-color: rgba(13, 110, 253, 0.8);"></div>
+                        <div class="rounded" style="width: 15px; height: 15px; background-color: rgba(13, 110, 253, 1.0);"></div>
+                    </div>
+                    <span>More</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 5. RECOMMENDATIONS -->
+<div class="row g-4 mb-4">
+    <div class="col-12">
+        <div class="card card-custom border-0 h-100 bg-white shadow-sm">
+            <div class="card-header bg-white border-0 pt-4 pb-3">
+                <h6 class="fw-bold mb-0"><i class="fas fa-lightbulb text-warning me-2"></i>Recommended for You</h6>
+            </div>
+            <div class="card-body">
+                <div class="row g-3 h-100">
+                    <div class="col-md-6">
+                        <div class="p-3 border rounded h-100 bg-light d-flex flex-column hover-lift">
+                            <div class="d-flex align-items-center mb-2">
+                                <span class="badge bg-warning text-dark me-2 border border-warning shadow-sm">Priority Focus</span>
+                                <h6 class="mb-0 fw-semibold text-dark">Practice HR Questions</h6>
+                            </div>
+                            <p class="small text-muted mb-3 flex-grow-1">Focus on structuring behavioral answers with confidence using the STAR method.</p>
+                            <a href="{{ url_for('interview') }}" class="text-primary small fw-bold text-decoration-none">Start Task <i class="fas fa-arrow-right ms-1"></i></a>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 border rounded h-100 bg-light d-flex flex-column hover-lift">
+                            <div class="d-flex align-items-center mb-2">
+                                <span class="badge bg-secondary text-white me-2 border border-secondary shadow-sm">Skill Gap</span>
+                                <h6 class="mb-0 fw-semibold text-dark">Reduce Filler Words</h6>
+                            </div>
+                            <p class="small text-muted mb-3 flex-grow-1">Improve fluency by pausing silently instead of using verbal fillers like "um" and "like".</p>
+                            <a href="{{ url_for('voice_trainer') }}" class="text-primary small fw-bold text-decoration-none">Start Task <i class="fas fa-arrow-right ms-1"></i></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .hover-lift {
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out !important;
+    }
+    .hover-lift:hover {
+        transform: translateY(-3px) !important;
+        box-shadow: 0 .25rem .5rem rgba(0,0,0,.1) !important;
+    }
+    .heatmap-col {
+        transition: transform 0.1s ease;
+    }
+    .heatmap-col:hover {
+        transform: scale(1.05);
+        border: 2px solid #0d6efd;
+    }
+    .bg-light-primary { background-color: rgba(13, 110, 253, 0.1); }
+    .bg-light-success { background-color: rgba(25, 135, 84, 0.1); }
+    .bg-light-info { background-color: rgba(13, 202, 240, 0.1); }
+    .bg-light-warning { background-color: rgba(255, 193, 7, 0.1); }
+    .bg-light-danger { background-color: rgba(220, 53, 69, 0.1); }
+    .bg-light-secondary { background-color: rgba(108, 117, 125, 0.1); }
+</style>
+
+{% endblock %}
+
+{% block scripts %}
+<!-- Chart.js for Dashboard Graphs -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        
+        // Doughnut Chart for Practice Distribution (Activity)
+        const ctxActivity = document.getElementById('activityChart').getContext('2d');
+        const distData = {{ stats.distribution | tojson }};
+        const hasData = distData.some(v => v > 0);
+        const chartData = hasData ? distData : [0, 0, 0, 0];
+        
+        const activityChart = new Chart(ctxActivity, {
+            type: 'doughnut',
+            data: {
+                labels: ['Communication', 'Tech Interviews', 'HR Interviews', 'Voice Training'],
+                datasets: [{
+                    data: chartData,
+                    backgroundColor: ['#0d6efd', '#198754', '#0dcaf0', '#6c757d'],
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            font: { family: 'Inter', size: 11 },
+                            usePointStyle: true,
+                            padding: 15,
+                            boxWidth: 8
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 10,
+                        bodyFont: { family: 'Inter', size: 13, weight: 'bold' },
+                        callbacks: {
+                            label: function (context) {
+                                return ' ' + context.label + ': ' + context.parsed + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+    });
+</script>
+{% endblock %}

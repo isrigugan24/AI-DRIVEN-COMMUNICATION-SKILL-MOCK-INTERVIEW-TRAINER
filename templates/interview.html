@@ -1,0 +1,586 @@
+{% extends 'base.html' %}
+
+{% block title %}Mock Interview Training{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="fw-bold"><i class="fas fa-user-tie text-success"></i> AI Mock Interview System</h2>
+        <p class="text-muted">Upload Job Details to generate dynamic, realistic interview questions and practice via
+            voice/text.</p>
+    </div>
+</div>
+
+<div class="row g-4 d-flex align-items-stretch">
+    <!-- Left Column: Company Details Upload -->
+    <div class="col-lg-5">
+        <div class="card card-custom p-4 h-100 mb-4">
+            <h5 class="fw-semibold mb-3 border-bottom pb-2">Step 1: Job & Company Details</h5>
+            <form id="companyDetailsForm" enctype="multipart/form-data">
+                <div class="row g-2 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold small text-muted text-uppercase mb-1">Full Name</label>
+                        <input type="text" class="form-control" name="candidate_name" value="{{ user.name }}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold small text-muted text-uppercase mb-1">Experience Level</label>
+                        <select class="form-select" name="experience" required>
+                            <option value="entry">Entry Level</option>
+                            <option value="mid">Mid Level</option>
+                            <option value="senior">Senior/Lead</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Target Job Role</label>
+                    <input type="text" class="form-control" name="job_role" placeholder="e.g. Full Stack Developer, Data Analyst"
+                        required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Company Type</label>
+                    <select class="form-select" name="company_type" required>
+                        <option value="" disabled selected>Select Company Type</option>
+                        <option value="startup">Startup</option>
+                        <option value="mid-size">Mid-Size Tech Company</option>
+                        <option value="mnc">MNC / Enterprise</option>
+                        <option value="remote">Remote Agency</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Industry Domain</label>
+                    <input type="text" class="form-control" name="industry_domain" placeholder="e.g. FinTech, Healthcare, E-Commerce" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Required Key Skills (Comma separated)</label>
+                    <textarea class="form-control" name="key_skills" rows="2" placeholder="e.g. Python, React, SQL, Problem Solving"
+                        required></textarea>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Interview Language</label>
+                    <select class="form-select" id="interviewLanguage" name="interview_language" required>
+                        <option value="en" selected>English</option>
+                        <option value="hi">Hindi</option>
+                        <option value="ta">Tamil</option>
+                        <option value="fr">French</option>
+                    </select>
+                </div>
+
+                <hr>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Upload CV / Resume</label>
+                    <input class="form-control" type="file" name="cv_file" id="cvUpload" accept=".pdf,.doc,.docx" required>
+                    <small class="text-muted">PDF or DOCX max 5MB for automatic profile structuring</small>
+                </div>
+
+                <div class="d-grid mt-4">
+                    <button type="submit" class="btn btn-success fw-bold p-2"><i class="fas fa-cogs"></i> Generate
+                        Interview Profile</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Right Column: Mock Interview Interface -->
+    <div class="col-lg-7">
+        <div class="card card-custom h-100 d-flex flex-column position-relative">
+            <!-- Overlay before job generation -->
+            <div id="interviewOverlay"
+                class="position-absolute w-100 h-100 bg-white d-flex align-items-center justify-content-center"
+                style="z-index: 10; opacity: 0.95; top: 0; left: 0; border-radius: 15px;">
+                <div class="text-center" id="overlayContent">
+                    <i class="fas fa-briefcase fa-4x text-success mb-3" style="opacity: 0.3;"></i>
+                    <h5>Awaiting Job Details</h5>
+                    <p class="text-muted small">Please fill out and submit the job configuration on the left to start.
+                    </p>
+                </div>
+            </div>
+
+            <div class="card-header bg-white border-bottom py-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5 class="mb-0 fw-semibold"><i class="fas fa-video text-danger me-2"></i>Live Interview Session</h5>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-primary rounded-pill px-3 py-2 fw-semibold" id="questionProgressBadge">
+                            <i class="fas fa-tasks me-1"></i> Question 1 of 16
+                        </span>
+                        <span class="badge bg-danger pulse-indicator d-none me-2" id="recordingBadge">Recording...</span>
+                        <button id="btnResetInterview" class="btn btn-sm btn-outline-danger d-none" title="Reset Interview"><i class="fas fa-redo"></i> Reset</button>
+                    </div>
+                </div>
+                <div class="progress rounded-pill bg-light border" style="height: 7px;">
+                    <div class="progress-bar bg-success progress-bar-striped progress-bar-animated rounded-pill" id="interviewProgressBar" style="width: 6.25%;"></div>
+                </div>
+            </div>
+
+            <div class="card-body" id="interviewChatContainer"
+                style="overflow-y: auto; max-height: 500px; min-height: 400px; background-color: #f8f9fa;">
+                <!-- AI Questions will appear here -->
+            </div>
+
+            <div class="card-footer bg-white border-top p-3 text-center">
+                <p class="mb-2 text-muted fw-bold small">Output Mode Selector</p>
+                <div class="d-flex justify-content-center align-items-center gap-3 mb-3">
+                    <div class="btn-group" role="group">
+                        <input type="radio" class="btn-check" name="interviewOutputMode" id="intOutText" value="text" checked>
+                        <label class="btn btn-outline-success btn-sm" for="intOutText"><i class="fas fa-align-left me-1"></i>Text Reply</label>
+                        <input type="radio" class="btn-check" name="interviewOutputMode" id="intOutVoice" value="voice">
+                        <label class="btn btn-outline-success btn-sm" for="intOutVoice"><i class="fas fa-volume-up me-1"></i>Voice Reply</label>
+                    </div>
+                </div>
+
+                <p class="mb-2 text-muted fw-bold small">Your Response</p>
+                <div class="d-flex justify-content-center align-items-center gap-3">
+                    <button id="btnInterviewRecord" class="btn btn-lg btn-danger rounded-circle shadow"
+                        style="width: 60px; height: 60px;">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                    <!-- Alternatively, fallback to text -->
+                    <button class="btn btn-outline-secondary" onclick="toggleInterviewText()">
+                        <i class="fas fa-keyboard"></i> Use Text Instead
+                    </button>
+                </div>
+
+                <!-- Text Input Alternative -->
+                <div id="interviewTextContainer" class="d-none mt-3">
+                    <form id="interviewTextForm" class="d-flex gap-2">
+                        <textarea class="form-control" id="interviewTextInput" rows="2"
+                            placeholder="Type your interview answer here..."></textarea>
+                        <button type="submit" class="btn btn-success px-4 h-auto"><i
+                                class="fas fa-paper-plane"></i></button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    @keyframes pulse-red {
+        0% {
+            transform: scale(0.95);
+            box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+        }
+
+        70% {
+            transform: scale(1);
+            box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
+        }
+
+        100% {
+            transform: scale(0.95);
+            box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+        }
+    }
+
+    .pulse-indicator {
+        animation: pulse-red 2s infinite;
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const form = document.getElementById('companyDetailsForm');
+        const overlay = document.getElementById('interviewOverlay');
+        const overlayContent = document.getElementById('overlayContent');
+        const chatContainer = document.getElementById('interviewChatContainer');
+        const textContainer = document.getElementById('interviewTextContainer');
+        const recordingBadge = document.getElementById('recordingBadge');
+        const btnRecord = document.getElementById('btnInterviewRecord');
+        const textForm = document.getElementById('interviewTextForm');
+        const textInput = document.getElementById('interviewTextInput');
+        const interviewLang = document.getElementById('interviewLanguage');
+        
+        // --- Persistence Logic ---
+        let interviewData = JSON.parse(localStorage.getItem('interviewData')) || { active: false, messages: [], isComplete: false };
+        
+        // Auto-clear if the interview was already completed and user navigated away then back
+        let legacyComplete = false;
+        if (interviewData.messages && interviewData.messages.length > 0) {
+            const lastMsg = interviewData.messages[interviewData.messages.length - 1];
+            if (lastMsg && lastMsg.text && lastMsg.text.includes('concludes our mock interview')) {
+                legacyComplete = true;
+            }
+        }
+
+        if (interviewData.active && (interviewData.isComplete || legacyComplete)) {
+            localStorage.removeItem('interviewData');
+            localStorage.removeItem('interviewFormData');
+            interviewData = { active: false, messages: [], isComplete: false };
+        }
+
+        const btnResetInterview = document.getElementById('btnResetInterview');
+        
+        window.resetMockInterview = function() {
+            localStorage.removeItem('interviewData');
+            localStorage.removeItem('interviewFormData');
+            location.reload();
+        };
+
+        if (btnResetInterview) {
+            btnResetInterview.addEventListener('click', function() {
+                if (confirm('Are you sure you want to reset the interview? This will clear all data.')) {
+                    window.resetMockInterview();
+                }
+            });
+        }
+
+        // 1. Restore Form State
+        const savedForm = localStorage.getItem('interviewFormData');
+        if (savedForm) {
+            try {
+                const data = JSON.parse(savedForm);
+                Object.keys(data).forEach(key => {
+                    const field = form.elements[key];
+                    if (field && field.type !== 'file') {
+                        field.value = data[key];
+                    }
+                });
+            } catch (e) {
+                console.error("Failed to parse saved form data", e);
+            }
+        }
+
+        // 2. Save Form State on Input
+        form.addEventListener('input', () => {
+            const data = {};
+            new FormData(form).forEach((val, key) => {
+                if (form.elements[key] && form.elements[key].type !== 'file') {
+                    data[key] = val;
+                }
+            });
+            localStorage.setItem('interviewFormData', JSON.stringify(data));
+        });
+
+        // 3. Restore Chat State
+        function renderPersistedMessages() {
+            if (interviewData.active) {
+                overlay.classList.remove('d-flex');
+                overlay.classList.add('d-none');
+                const btn = form.querySelector('button[type="submit"]');
+                btn.innerHTML = '<i class="fas fa-check"></i> Profile Active';
+                btn.classList.replace('btn-success', 'btn-primary');
+                if (btnResetInterview) btnResetInterview.classList.remove('d-none');
+                
+                chatContainer.innerHTML = ''; 
+                interviewData.messages.forEach(msg => {
+                    appendInterviewMessage(msg.sender, msg.text, msg.isSystem, true);
+                });
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+                updateProgressUI(interviewData.currentQIdx || 1, interviewData.totalQuestions || 16);
+            } else {
+                overlay.classList.remove('d-none');
+                overlay.classList.add('d-flex');
+                if (btnResetInterview) btnResetInterview.classList.add('d-none');
+                overlayContent.innerHTML = `
+                    <i class="fas fa-briefcase fa-4x text-success mb-3" style="opacity: 0.3;"></i>
+                    <h5>Awaiting Job Details</h5>
+                    <p class="text-muted small">Please fill out and submit the job configuration on the left to start.</p>
+                `;
+            }
+        }
+        
+        // Basic Audio Player injection from Communication Module to reuse code style
+        function createAudioPlayerHtml(id) {
+            return `
+                <div class="audio-player bg-light p-2 rounded-pill d-flex align-items-center gap-2 mb-2 shadow-sm border border-light w-100" id="${id}" style="max-width: 400px; font-family: 'Poppins', 'Inter', sans-serif;">
+                    <button class="btn btn-sm btn-primary rounded-circle shadow-sm play-btn" style="width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-play" style="font-size: 0.85rem; margin-left: 2px;"></i>
+                    </button>
+                    <button class="btn btn-sm btn-light rounded-circle shadow-sm text-secondary border replay-btn" style="width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center;" title="Replay">
+                        <i class="fas fa-redo" style="font-size: 0.85rem;"></i>
+                    </button>
+                </div>
+            `;
+        }
+
+        class NativeAudioPlayer {
+            constructor(containerId, audioUrl, autoplay = false) {
+                this.container = document.getElementById(containerId);
+                if (!this.container) return;
+                
+                this.audio = new Audio(audioUrl);
+                
+                // Consistency tracking with global styling
+                if (typeof applyGlobalVoiceType === 'function' && typeof globalVoiceTypeFallback !== 'undefined') {
+                    applyGlobalVoiceType(this.audio, globalVoiceTypeFallback);
+                }
+                
+                this.playBtn = this.container.querySelector('.play-btn');
+                this.playIcon = this.playBtn.querySelector('i');
+                this.replayBtn = this.container.querySelector('.replay-btn');
+                
+                this.init();
+                if (autoplay) this.audio.play().catch(e => console.warn('Autoplay blocked'));
+            }
+            init() {
+                this.audio.addEventListener('ended', () => { this.playIcon.className = 'fas fa-play'; });
+                this.playBtn.addEventListener('click', () => {
+                    if (this.audio.paused || this.audio.ended) {
+                        this.audio.play();
+                        this.playIcon.className = 'fas fa-pause';
+                    } else {
+                        this.audio.pause();
+                        this.playIcon.className = 'fas fa-play';
+                    }
+                });
+                this.replayBtn.addEventListener('click', () => {
+                    this.audio.currentTime = 0;
+                    this.audio.play();
+                    this.playIcon.className = 'fas fa-pause';
+                });
+            }
+        }
+
+        function speakAIResponse(text, langCode) {
+            const playerId = `ai-player-${Date.now()}`;
+            const loadingHtml = `<div id="loading-${playerId}" class="small text-primary fst-italic"><i class="fas fa-spinner fa-spin"></i> Generating Audio Response...</div>`;
+            appendInterviewMessage('ai', loadingHtml, true);
+            
+            fetch('/api/tts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: text, lang: langCode })
+            })
+            .then(res => res.json())
+            .then(data => {
+                const loadingEl = document.getElementById(`loading-${playerId}`);
+                if (loadingEl) loadingEl.parentElement.parentElement.remove();
+                
+                if (data.status === 'success') {
+                    const audioHtml = `${createAudioPlayerHtml(playerId)}<hr class="text-muted opacity-25 my-2"><div class="text-dark small">${text}</div>`;
+                    // Using skipPersist=false since this audio widget replaces the loading state visually
+                    appendInterviewMessage('ai', audioHtml, false, false); 
+                    setTimeout(() => new NativeAudioPlayer(playerId, data.audio_url, false), 50);
+                } else {
+                    appendInterviewMessage('ai', `<div class="text-danger small"><i class="fas fa-exclamation-circle"></i> Audio API Error</div><div class="text-dark small">${text}</div>`);
+                }
+            })
+            .catch(err => {
+                const loadingEl = document.getElementById(`loading-${playerId}`);
+                if (loadingEl) loadingEl.parentElement.parentElement.remove();
+                appendInterviewMessage('ai', `<div class="text-danger small"><i class="fas fa-exclamation-circle"></i> Network Error</div><div class="text-dark small">${text}</div>`);
+            });
+        }
+
+        // Handle Job configuration submission
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const btn = form.querySelector('button[type="submit"]');
+            
+            // Set Loading State
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating Profile...';
+            btn.disabled = true;
+            
+            overlay.classList.remove('d-none');
+            overlay.classList.add('d-flex');
+            overlayContent.innerHTML = `
+                <i class="fas fa-spinner fa-spin fa-4x text-success mb-3"></i>
+                <h5>Generating Interview...</h5>
+                <p class="text-muted small">Molding AI persona to your profile.</p>
+            `;
+
+            const formData = new FormData(form);
+
+            fetch('/api/interview/upload_company', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === 'success') {
+                    overlay.classList.remove('d-flex');
+                    overlay.classList.add('d-none');
+                    btn.innerHTML = '<i class="fas fa-check"></i> Profile Active';
+                    btn.classList.replace('btn-success', 'btn-primary');
+                    
+                    // Reset existing chat data
+                    const totalQuestions = data.total_questions || 16;
+                    interviewData = { 
+                        active: true, 
+                        messages: [], 
+                        isComplete: false, 
+                        currentQIdx: 1, 
+                        totalQuestions: totalQuestions 
+                    };
+                    localStorage.setItem('interviewData', JSON.stringify(interviewData));
+                    chatContainer.innerHTML = '';
+                    if (btnResetInterview) btnResetInterview.classList.remove('d-none');
+                    updateProgressUI(1, totalQuestions);
+                    
+                    const outputMode = document.querySelector('input[name="interviewOutputMode"]:checked').value;
+                    const lang = interviewLang ? interviewLang.value : 'en';
+                    
+                    if(outputMode === 'voice') {
+                        speakAIResponse(data.first_question, lang);
+                    } else {
+                        appendInterviewMessage('ai', data.first_question);
+                    }
+                } else {
+                    btn.innerHTML = 'Error initializing';
+                    btn.disabled = false;
+                }
+            })
+            .catch(err => {
+                console.error("API error:", err);
+                alert("Connection error formatting profile.");
+                btn.innerHTML = 'Generate Interview Profile';
+                btn.disabled = false;
+                
+                overlayContent.innerHTML = `
+                    <i class="fas fa-exclamation-triangle fa-4x text-danger mb-3"></i>
+                    <h5>Connection Failed</h5>
+                    <p class="text-muted small">Please try submitting again.</p>
+                `;
+            });
+        });
+
+        function updateProgressUI(current, total) {
+            const badge = document.getElementById('questionProgressBadge');
+            const bar = document.getElementById('interviewProgressBar');
+            if (badge) {
+                const displayQ = Math.min(current, total);
+                badge.innerHTML = `<i class="fas fa-tasks me-1"></i> Question ${displayQ} of ${total}`;
+            }
+            if (bar) {
+                const pct = Math.min(100, Math.max(6, Math.round((current / total) * 100)));
+                bar.style.width = `${pct}%`;
+            }
+        }
+
+        // Toggle Text Input
+        window.toggleInterviewText = function () {
+            textContainer.classList.toggle('d-none');
+        };
+        
+        function processAnswer(answerText) {
+            appendInterviewMessage('ai', '<span class="text-muted fst-italic" id="evalLoad"><i class="fas fa-spinner fa-spin"></i> Evaluating response...</span>', true);
+
+            fetch('/api/interview/process', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({answer: answerText})
+            })
+            .then(res => res.json())
+            .then(data => {
+                const evalLoad = document.getElementById('evalLoad');
+                if (evalLoad) evalLoad.parentElement.parentElement.remove();
+                
+                const lang = interviewLang ? interviewLang.value : 'en';
+                const outputMode = document.querySelector('input[name="interviewOutputMode"]:checked').value;
+                const fullResponseText = `Feedback: ${data.feedback} Next: ${data.next_question}`;
+                
+                const totalQ = data.total_questions || 16;
+                const nextQ = data.next_question_idx || ((data.current_question_idx || 1) + 1);
+                updateProgressUI(nextQ, totalQ);
+                interviewData.currentQIdx = nextQ;
+                interviewData.totalQuestions = totalQ;
+                localStorage.setItem('interviewData', JSON.stringify(interviewData));
+
+                if (outputMode === 'voice') {
+                    speakAIResponse(fullResponseText, lang);
+                } else {
+                    let feedbackHtml = `<div class="bg-light border-start border-3 border-info p-3 mb-2 rounded-2 small text-dark"><strong class="text-primary"><i class="fas fa-lightbulb text-warning me-1"></i> Interviewer Evaluation:</strong><br>${data.feedback}</div>`;
+                    let qHtml = `<div class="fw-bold text-dark mt-2" style="font-size: 1rem;">${data.next_question}</div>`;
+                    appendInterviewMessage('ai', feedbackHtml + qHtml);
+                }
+
+                if (data.is_complete) {
+                    interviewData.isComplete = true;
+                    localStorage.setItem('interviewData', JSON.stringify(interviewData));
+                    updateProgressUI(totalQ, totalQ);
+                    
+                    appendInterviewMessage('system', `<div class="text-center mt-4 mb-2">
+                        <div class="card border-0 shadow-sm p-4 bg-white rounded-4 border-top border-4 border-success d-inline-block text-start w-100">
+                            <div class="d-flex align-items-center gap-3 mb-3">
+                                <div class="icon-box bg-success bg-opacity-10 text-success p-3 rounded-circle" style="font-size: 1.75rem;">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <div>
+                                    <h5 class="fw-bold text-dark mb-0">Mock Interview Complete!</h5>
+                                    <p class="text-muted small mb-0">All ${totalQ} comprehensive interview questions completed across technical, behavioral, and architecture stages.</p>
+                                </div>
+                            </div>
+                            <div class="d-flex gap-2 justify-content-end mt-3">
+                                <a href="/reports" class="btn btn-primary btn-sm fw-semibold px-3 py-2 rounded-pill"><i class="fas fa-chart-line me-1"></i> View Performance Report</a>
+                                <button class="btn btn-outline-success btn-sm fw-semibold px-3 py-2 rounded-pill" onclick="window.resetMockInterview()"><i class="fas fa-sync me-1"></i> Start New Interview</button>
+                            </div>
+                        </div>
+                    </div>`, true);
+
+                    // Disable further input since it's completed
+                    document.getElementById('btnInterviewRecord').disabled = true;
+                    document.getElementById('interviewTextInput').disabled = true;
+                }
+            });
+        }
+
+        // Handle Mock Voice Recording
+        let isInterviewRecording = false;
+        btnRecord.addEventListener('click', function () {
+            if (!isInterviewRecording) {
+                isInterviewRecording = true;
+                this.classList.replace('btn-danger', 'btn-warning');
+                recordingBadge.classList.remove('d-none');
+            } else {
+                isInterviewRecording = false;
+                this.classList.replace('btn-warning', 'btn-danger');
+                recordingBadge.classList.add('d-none');
+
+                appendInterviewMessage('user', '(Audio Answer Simulated)');
+                processAnswer("I worked on solving scaling issues using modern cloud architecture.");
+            }
+        });
+
+        // Handle Text Submit
+        textForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const text = textInput.value.trim();
+            if (!text) return;
+
+            appendInterviewMessage('user', text);
+            textInput.value = '';
+            toggleInterviewText();
+
+            processAnswer(text);
+        });
+
+        function appendInterviewMessage(sender, text, isSystem = false, skipPersist = false) {
+            if (!skipPersist) {
+                // Avoid persisting transient loading text
+                if (!text.includes('fa-spinner')) {
+                    interviewData.messages.push({ sender, text, isSystem });
+                    localStorage.setItem('interviewData', JSON.stringify(interviewData));
+                }
+            }
+            
+            const div = document.createElement('div');
+            div.className = 'mb-3 d-flex ' + (sender === 'user' ? 'justify-content-end' : 'justify-content-start');
+
+            let bgClass = sender === 'user' ? 'bg-success text-white' : 'bg-white border text-dark';
+            if (isSystem) bgClass = 'bg-transparent border-0';
+            
+            let alignClass = sender === 'user' ? 'rounded-start' : 'rounded-end';
+            let icon = sender === 'ai' && !isSystem ? '<i class="fas fa-user-tie text-success me-2"></i><b>Interviewer:</b><br>' : '';
+
+            div.innerHTML = `
+                <div class="p-3 shadow-sm ${bgClass} rounded-3 ${alignClass}" style="max-width: 80%; display:block;">
+                    ${icon} ${text}
+                </div>
+            `;
+            chatContainer.appendChild(div);
+            // Handle scrolling
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Initialize state on load
+        renderPersistedMessages();
+    });
+</script>
+{% endblock %}

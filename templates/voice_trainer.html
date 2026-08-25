@@ -1,0 +1,553 @@
+{% extends 'base.html' %}
+
+{% block title %}Live Voice Trainer - AI Skill Trainer{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+    <div>
+        <h2 class="fw-bold mb-1 text-dark"><i class="fas fa-headset text-primary me-2"></i>Real-Time Voice Trainer</h2>
+        <p class="text-muted mb-0">Practice speaking naturally and receive instant contextual AI voice replies, exact mistake identification, and clear 5-point corrections.</p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-light text-secondary border px-3 py-2">
+            <i class="fas fa-user-cog me-1 text-primary"></i> Voice: <strong>{{ session.get('ai_voice', 'en')|upper }} ({{ session.get('ai_voice_type', 'female')|capitalize }})</strong>
+        </span>
+    </div>
+</div>
+
+<!-- LIVE VOICE COMMUNICATION TRAINER MODULE -->
+<div class="row mt-3 mb-5">
+    <div class="col-12">
+        <div class="card card-custom border-0 shadow-sm overflow-hidden">
+            <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 fw-bold"><i class="fas fa-satellite-dish text-danger me-2"></i>Interactive Live Voice Coach</h5>
+                <div class="d-flex align-items-center gap-2">
+                    <label for="liveLangSelect" class="small fw-bold text-secondary mb-0">Language:</label>
+                    <select id="liveLangSelect" class="form-select form-select-sm border shadow-sm fw-semibold bg-light" style="width: auto;">
+                        <option value="en" {% if session.get('ai_voice') == 'en' %}selected{% endif %}>English</option>
+                        <option value="ta" {% if session.get('ai_voice') == 'ta' %}selected{% endif %}>Tamil (தமிழ்)</option>
+                        <option value="hi">Hindi (हिन्दी)</option>
+                        <option value="te">Telugu (తెలుగు)</option>
+                        <option value="ml">Malayalam (മലയാളം)</option>
+                        <option value="kn">Kannada (ಕನ್ನಡ)</option>
+                        <option value="bn">Bengali (বাংলা)</option>
+                        <option value="mr">Marathi (मराठी)</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="card-body p-0">
+                <div class="row g-0">
+                    <!-- Left Pane: Conversation Loop -->
+                    <div class="col-lg-7 border-end d-flex flex-column bg-light" style="min-height: 540px;">
+                        
+                        <!-- Toolbar -->
+                        <div class="p-3 bg-white border-bottom d-flex justify-content-center gap-3">
+                            <button id="btnStartLive" class="btn btn-success fw-bold px-4 rounded-pill shadow-sm"><i class="fas fa-play me-2"></i>Start Conversation</button>
+                            <button id="btnPauseLive" class="btn btn-warning fw-bold px-4 rounded-pill shadow-sm d-none text-dark"><i class="fas fa-pause me-2"></i>Pause</button>
+                            <button id="btnStopLive" class="btn btn-danger fw-bold px-4 rounded-pill shadow-sm d-none"><i class="fas fa-stop me-2"></i>Stop Session</button>
+                        </div>
+                        
+                        <!-- Chat Area -->
+                        <div id="liveChatArea" class="flex-grow-1 p-4 custom-scrollbar" style="overflow-y: auto; max-height: 480px; min-height: 380px;">
+                            <div class="text-center text-muted small my-4" id="liveWelcomeMsg">
+                                <div class="icon-box bg-light-primary text-primary mx-auto mb-3" style="width: 70px; height: 70px; font-size: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-microphone-alt"></i>
+                                </div>
+                                <h6 class="fw-bold text-dark mb-1">Ready for Real-Time Voice Coaching</h6>
+                                <p class="text-muted small mb-0">Click <strong>"Start Conversation"</strong> to speak. The AI will listen, reply naturally, identify any exact mistakes, and speak back in real time.</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Live Transcription Indicator -->
+                        <div class="p-3 bg-white border-top shadow-sm z-1">
+                            <div class="d-flex align-items-center gap-3">
+                                <div id="liveMicIndicator" class="text-secondary d-flex justify-content-center align-items-center" style="width: 45px; height: 45px; border-radius:50%; background: #f8f9fa; transition: all 0.3s ease;">
+                                    <i class="fas fa-microphone-slash fa-lg"></i>
+                                </div>
+                                <div class="flex-grow-1 bg-light rounded-pill px-4 py-2 border d-flex align-items-center" style="min-height: 45px;">
+                                    <span id="liveTranscriptionText" class="text-muted fst-italic small mb-0">Transcription will appear here...</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                    </div>
+                        
+                    <!-- Right Pane: Real-Time NLP Analysis -->
+                    <div class="col-lg-5 bg-white d-flex flex-column h-100">
+                        <div class="p-3 px-4 border-bottom bg-light d-flex justify-content-between align-items-center">
+                            <h6 class="fw-bold mb-0 text-uppercase tracking-wide text-secondary small"><i class="fas fa-chart-pie text-primary me-2"></i>Real-Time Coaching Analytics</h6>
+                            <span class="badge bg-success rounded-pill px-2 py-1 small" id="anStatusBadge">Active Coach</span>
+                        </div>
+                        <div id="liveAnalysisPanel" class="p-4 flex-grow-1 custom-scrollbar" style="overflow-y: auto; max-height: 540px;">
+                            <!-- Empty State -->
+                            <div class="text-center text-muted my-5" id="analysisEmptyState">
+                                <i class="fas fa-robot fa-4x mb-3 text-secondary opacity-25"></i>
+                                <p class="mb-0 fw-semibold text-dark">Linguistic analysis will generate dynamically</p>
+                                <small class="text-muted">Exact mistakes, grammar checks, and explanations will appear here after you speak.</small>
+                            </div>
+                            
+                            <!-- Analysis Cards (Injected via JS) -->
+                            <div id="analysisContentArea" class="d-none">
+                                <!-- Target Correction Container -->
+                                <div class="card border-0 bg-light p-3 rounded-3 mb-3 shadow-sm border-start border-4 border-primary" id="cardCorrectionTarget">
+                                    <h6 class="fw-bold mb-2 text-dark d-flex justify-content-between align-items-center">
+                                        <span><i class="fas fa-bullseye text-primary me-2"></i>Speech Analysis</span>
+                                        <span id="mistakeBadge" class="badge bg-danger rounded-pill">Mistake Found</span>
+                                    </h6>
+                                    
+                                    <div class="mb-2">
+                                        <small class="text-muted fw-bold d-block">What you said:</small>
+                                        <div class="small p-2 rounded bg-white border text-dark" id="anOriginalContainer">
+                                            <span id="anOriginal">original</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div>
+                                        <small class="text-muted fw-bold d-block">Polished Version:</small>
+                                        <div class="small p-2 rounded bg-white border border-success border-opacity-50 text-success fw-semibold" id="anCorrected">
+                                            corrected
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Detailed Mistakes Breakdown Cards -->
+                                <div id="detailedMistakesList" class="mb-3">
+                                    <!-- Injected dynamically -->
+                                </div>
+                                
+                                <!-- Core Scores -->
+                                <div class="row g-2 mb-3">
+                                    <div class="col-6">
+                                        <div class="p-3 border rounded-3 bg-light text-center">
+                                            <div class="small text-muted fw-bold text-uppercase mb-1" style="font-size: 0.75rem;">Fluency Rate</div>
+                                            <h4 class="mb-0 text-success fw-bold" id="anFluency">0%</h4>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="p-3 border rounded-3 bg-light text-center">
+                                            <div class="small text-muted fw-bold text-uppercase mb-1" style="font-size: 0.75rem;">Grammar Score</div>
+                                            <h4 class="mb-0 text-primary fw-bold" id="anGrammarScore">0%</h4>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Metrics List -->
+                                <h6 class="fw-bold border-bottom pb-2 mb-2 text-secondary small text-uppercase">Competency Breakdown</h6>
+                                <ul class="list-group list-group-flush small mb-3">
+                                    <li class="list-group-item px-0 d-flex justify-content-between align-items-center bg-transparent border-light py-2">
+                                        <span class="fw-semibold"><i class="fas fa-spell-check text-muted me-2"></i>Grammar Evaluation</span>
+                                        <span class="badge bg-light text-dark border" id="anGrammar">Pending</span>
+                                    </li>
+                                    <li class="list-group-item px-0 d-flex justify-content-between align-items-center bg-transparent border-light py-2">
+                                        <span class="fw-semibold"><i class="fas fa-stream text-muted me-2"></i>Sentence Structure</span>
+                                        <span class="badge bg-light text-dark border" id="anStructure">Pending</span>
+                                    </li>
+                                    <li class="list-group-item px-0 d-flex justify-content-between align-items-center bg-transparent border-light py-2">
+                                        <span class="fw-semibold"><i class="fas fa-book text-muted me-2"></i>Vocabulary Variety</span>
+                                        <span class="badge bg-light text-dark border" id="anVocab">Pending</span>
+                                    </li>
+                                    <li class="list-group-item px-0 d-flex justify-content-between align-items-center bg-transparent border-light py-2">
+                                        <span class="fw-semibold"><i class="fas fa-tachometer-alt text-muted me-2"></i>Confidence & Cadence</span>
+                                        <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25" id="anConfidence">High</span>
+                                    </li>
+                                </ul>
+                                
+                                <!-- Actionable Tip -->
+                                <div class="bg-light-warning rounded-3 p-3 border border-warning border-opacity-50">
+                                    <h6 class="fw-bold mb-1 text-dark small"><i class="fas fa-lightbulb text-warning me-2"></i>Actionable Improvement Tip</h6>
+                                    <p class="small mb-0 text-muted" id="anTips">Pending.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    @keyframes pulse-red-soft {
+        0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4); }
+        70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+        100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+    }
+    .mic-recording {
+        animation: pulse-red-soft 1.5s infinite;
+        background: #ffe5e5 !important;
+        color: #dc3545 !important;
+    }
+    .chat-bubble {
+        max-width: 82%;
+        display: inline-block;
+        padding: 14px 18px;
+        border-radius: 16px;
+        font-size: 0.95rem;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+    }
+    .bubble-user { 
+        background-color: #0d6efd; 
+        color: white; 
+        border-bottom-right-radius: 4px; 
+    }
+    .bubble-ai { 
+        background-color: white; 
+        border: 1px solid #e9ecef; 
+        color: #212529; 
+        border-bottom-left-radius: 4px; 
+    }
+    .coach-feedback-box {
+        background: #fdfdfe;
+        border-left: 4px solid #dc3545;
+        border-radius: 8px;
+        padding: 12px;
+        font-size: 0.88rem;
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const synth = window.speechSynthesis;
+        let recognition = null;
+        let isLiveActive = false;
+        let isSystemSpeaking = false;
+        let currentAudio = null;
+        
+        const btnStartLive = document.getElementById('btnStartLive');
+        const btnStopLive = document.getElementById('btnStopLive');
+        const btnPauseLive = document.getElementById('btnPauseLive');
+        const liveLangSelect = document.getElementById('liveLangSelect');
+        const liveChatArea = document.getElementById('liveChatArea');
+        const liveWelcomeMsg = document.getElementById('liveWelcomeMsg');
+        const liveMicIndicator = document.getElementById('liveMicIndicator');
+        const liveTranscriptionText = document.getElementById('liveTranscriptionText');
+        
+        function appendUserBubble(rawText, highlightedHtml) {
+            const wrap = document.createElement('div');
+            wrap.className = 'd-flex w-100 mb-3 justify-content-end';
+            const content = highlightedHtml || rawText;
+            wrap.innerHTML = `<div class="chat-bubble bubble-user">${content}</div>`;
+            liveChatArea.appendChild(wrap);
+            liveChatArea.scrollTop = liveChatArea.scrollHeight;
+        }
+
+        function appendAiBubble(replyText, mistakes, audioUrl) {
+            const wrap = document.createElement('div');
+            wrap.className = 'd-flex w-100 mb-3 justify-content-start';
+            
+            let mistakesHtml = '';
+            if (mistakes && mistakes.length > 0) {
+                mistakesHtml = mistakes.map((m, idx) => `
+                    <div class="coach-feedback-box mt-2 border shadow-sm">
+                        <div class="fw-bold text-danger mb-1 d-flex justify-content-between">
+                            <span><i class="fas fa-times-circle me-1"></i> Exact Mistake Detected:</span>
+                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25">${m.category}</span>
+                        </div>
+                        <div class="mb-1 text-dark"><strong>You said:</strong> <span class="text-danger text-decoration-line-through">"${m.what_said}"</span></div>
+                        <div class="mb-1 text-dark"><strong>Issue:</strong> ${m.what_was_incorrect}</div>
+                        <div class="mb-1 text-muted small"><strong>Why:</strong> ${m.why_incorrect}</div>
+                        <div class="text-success fw-bold"><strong>Corrected:</strong> <i class="fas fa-check-circle me-1"></i> "${m.corrected_phrase}"</div>
+                    </div>
+                `).join('');
+            }
+
+            let audioPlayerHtml = '';
+            if (audioUrl) {
+                audioPlayerHtml = `
+                    <div class="mt-2 pt-2 border-top d-flex align-items-center gap-2">
+                        <button class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 fw-semibold btn-replay-audio" onclick="playVoiceAudio('${audioUrl}')">
+                            <i class="fas fa-volume-up me-1"></i> Replay Voice
+                        </button>
+                        <small class="text-muted"><i class="fas fa-check text-success"></i> Spoken with AI Voice</small>
+                    </div>
+                `;
+            }
+
+            wrap.innerHTML = `
+                <div class="chat-bubble bubble-ai shadow-sm" style="max-width: 88%;">
+                    <div class="d-flex align-items-center gap-2 mb-2 pb-1 border-bottom">
+                        <i class="fas fa-robot text-primary"></i>
+                        <strong class="text-dark">AI Voice Coach</strong>
+                    </div>
+                    <p class="mb-1 text-dark" style="line-height: 1.5;">${replyText}</p>
+                    ${mistakesHtml}
+                    ${audioPlayerHtml}
+                </div>
+            `;
+            liveChatArea.appendChild(wrap);
+            liveChatArea.scrollTop = liveChatArea.scrollHeight;
+        }
+
+        window.playVoiceAudio = function(audioUrl) {
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio.currentTime = 0;
+            }
+            currentAudio = new Audio(audioUrl);
+            currentAudio.play().catch(e => console.warn('Audio play prevented', e));
+        };
+
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            
+            recognition.onstart = () => {
+                if (isSystemSpeaking) return;
+                liveMicIndicator.classList.add('mic-recording');
+                liveMicIndicator.innerHTML = '<i class="fas fa-microphone fa-lg"></i>';
+                liveTranscriptionText.innerHTML = '<span class="text-dark fw-semibold">Listening to your voice...</span>';
+            };
+            
+            recognition.onresult = (event) => {
+                if (isSystemSpeaking) return;
+                
+                let interimTranscript = '';
+                let finalTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript;
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
+                }
+                
+                if (interimTranscript) {
+                    liveTranscriptionText.innerHTML = `<span class="text-primary">${interimTranscript}</span>`;
+                }
+                
+                if (finalTranscript.trim()) {
+                    liveTranscriptionText.innerHTML = `<span class="text-success"><i class="fas fa-spinner fa-spin me-2"></i>Analyzing: "${finalTranscript}"</span>`;
+                    
+                    // Stop listening immediately while processing
+                    recognition.stop();
+                    processLiveAudio(finalTranscript);
+                }
+            };
+            
+            recognition.onend = () => {
+                liveMicIndicator.classList.remove('mic-recording');
+                liveMicIndicator.innerHTML = '<i class="fas fa-microphone-slash fa-lg"></i>';
+                
+                // Resume continuous listening if session is still active and AI isn't speaking
+                if (isLiveActive && !isSystemSpeaking) {
+                    try { recognition.start(); } catch(e) {}
+                } else if (!isLiveActive && !isSystemSpeaking) {
+                    liveTranscriptionText.innerHTML = '<span class="text-muted fst-italic">Session Stopped.</span>';
+                }
+            };
+            
+            recognition.onerror = (event) => {
+                if (event.error === 'not-allowed') {
+                    alert("Microphone access was denied. Please check browser permissions.");
+                    stopLiveSession();
+                }
+            };
+
+        } else {
+            if (liveWelcomeMsg) {
+                liveWelcomeMsg.innerHTML = '<span class="text-danger"><i class="fas fa-exclamation-triangle fa-2x mb-2"></i><br>Your browser does not support Speech Recognition. Please use Chrome or Edge.</span>';
+            }
+            btnStartLive.disabled = true;
+        }
+        
+        function processLiveAudio(text) {
+            isSystemSpeaking = true;
+            const selectedLang = liveLangSelect.value;
+            
+            fetch('/api/live_voice_analyze', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    text: text,
+                    lang: selectedLang
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                // Populate Analytics Right Pane
+                document.getElementById('analysisEmptyState').classList.add('d-none');
+                document.getElementById('analysisContentArea').classList.remove('d-none');
+                
+                const an = data.analysis;
+                const mistakes = data.mistakes || [];
+                
+                // Update Target Card
+                const cardTarget = document.getElementById('cardCorrectionTarget');
+                const badgeMistake = document.getElementById('mistakeBadge');
+                
+                if (data.has_mistakes) {
+                    cardTarget.className = 'card border-0 bg-light p-3 rounded-3 mb-3 shadow-sm border-start border-4 border-danger';
+                    badgeMistake.className = 'badge bg-danger rounded-pill';
+                    badgeMistake.textContent = `${mistakes.length} Mistake${mistakes.length>1?'s':''} Identified`;
+                    document.getElementById('anStatusBadge').className = 'badge bg-danger rounded-pill px-2 py-1 small';
+                    document.getElementById('anStatusBadge').textContent = 'Correction Required';
+                } else {
+                    cardTarget.className = 'card border-0 bg-light p-3 rounded-3 mb-3 shadow-sm border-start border-4 border-success';
+                    badgeMistake.className = 'badge bg-success rounded-pill';
+                    badgeMistake.textContent = 'Accurate & Fluent';
+                    document.getElementById('anStatusBadge').className = 'badge bg-success rounded-pill px-2 py-1 small';
+                    document.getElementById('anStatusBadge').textContent = 'Fluent Delivery';
+                }
+
+                document.getElementById('anOriginal').innerHTML = an.highlighted_original || an.original;
+                document.getElementById('anCorrected').textContent = an.corrected;
+                document.getElementById('anFluency').textContent = an.fluency;
+                document.getElementById('anGrammarScore').textContent = an.grammar.includes('%') ? an.grammar.match(/\d+%/)[0] : '88%';
+                document.getElementById('anConfidence').textContent = an.confidence;
+                document.getElementById('anGrammar').textContent = an.grammar;
+                document.getElementById('anStructure').textContent = an.structure;
+                document.getElementById('anVocab').textContent = an.vocab;
+                document.getElementById('anTips').textContent = an.tips;
+
+                // Render Detailed Mistakes Cards in Right Pane
+                const mistakesListDiv = document.getElementById('detailedMistakesList');
+                if (mistakes.length > 0) {
+                    mistakesListDiv.innerHTML = mistakes.map((m, idx) => `
+                        <div class="card border rounded-3 p-3 mb-2 bg-white shadow-sm">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="fw-bold text-danger small"><i class="fas fa-exclamation-circle me-1"></i> ${m.category}</span>
+                                <span class="badge bg-light text-muted border">Issue #${idx+1}</span>
+                            </div>
+                            <p class="small mb-1 text-dark"><strong>What was said:</strong> <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25">${m.what_said}</span></p>
+                            <p class="small mb-1 text-muted"><strong>What was incorrect:</strong> ${m.what_was_incorrect}</p>
+                            <p class="small mb-1 text-muted" style="font-size: 0.82rem;"><strong>Why:</strong> ${m.why_incorrect}</p>
+                            <p class="small mb-0 text-success fw-bold"><strong>Correction:</strong> ${m.how_to_correct} &rarr; <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25">${m.corrected_phrase}</span></p>
+                        </div>
+                    `).join('');
+                } else {
+                    mistakesListDiv.innerHTML = `
+                        <div class="alert alert-success p-2 small mb-2 border-0 bg-success bg-opacity-10 text-success">
+                            <i class="fas fa-check-circle me-1"></i> No critical grammatical or sentence structure errors detected. Great job!
+                        </div>
+                    `;
+                }
+
+                // Append bubbles to conversation area
+                appendUserBubble(text, an.highlighted_original);
+                appendAiBubble(data.reply, mistakes, data.audio_url);
+
+                // Play Audio Speech Feedback
+                speakAiResponse(data.spoken_text || data.reply, data.audio_url);
+            })
+            .catch(err => {
+                console.error("Live analysis error:", err);
+                appendUserBubble(text, text);
+                appendAiBubble("I understood your statement. Let's keep practicing! What else is on your mind?", [], null);
+                isSystemSpeaking = false;
+                if(isLiveActive && recognition) recognition.start();
+            });
+        }
+        
+        function speakAiResponse(spokenText, audioUrl) {
+            liveTranscriptionText.innerHTML = '<span class="text-info fw-semibold"><i class="fas fa-volume-up me-2"></i>AI is speaking...</span>';
+
+            if (audioUrl) {
+                // High-fidelity Edge-TTS audio file playback
+                if (currentAudio) {
+                    currentAudio.pause();
+                    currentAudio.currentTime = 0;
+                }
+                currentAudio = new Audio(audioUrl);
+                currentAudio.onended = () => {
+                    isSystemSpeaking = false;
+                    liveTranscriptionText.innerHTML = '<span class="text-muted fw-semibold">Listening to your voice...</span>';
+                    if (isLiveActive && recognition) {
+                        try { recognition.start(); } catch(e){}
+                    }
+                };
+                currentAudio.onerror = () => {
+                    // Fallback to Web Speech API
+                    fallbackWebSpeechSpeak(spokenText);
+                };
+                currentAudio.play().catch(e => {
+                    console.warn('Audio play error, falling back to Web Speech', e);
+                    fallbackWebSpeechSpeak(spokenText);
+                });
+            } else {
+                fallbackWebSpeechSpeak(spokenText);
+            }
+        }
+
+        function fallbackWebSpeechSpeak(text) {
+            if (synth.speaking) synth.cancel();
+            
+            const utter = new SpeechSynthesisUtterance(text);
+            const selectedLang = liveLangSelect.value;
+            utter.lang = selectedLang === 'ta' ? 'ta-IN' : selectedLang === 'hi' ? 'hi-IN' : 'en-US';
+            
+            const vType = "{{ session.get('ai_voice_type', 'female') }}";
+            if (vType === 'male' || vType === 'adult_male') utter.rate = 0.9;
+            else utter.rate = 1.0;
+            
+            utter.onend = () => {
+                isSystemSpeaking = false;
+                liveTranscriptionText.innerHTML = '<span class="text-muted fw-semibold">Listening to your voice...</span>';
+                if(isLiveActive && recognition) {
+                    try { recognition.start(); } catch(e){}
+                }
+            };
+            
+            utter.onerror = (e) => {
+                isSystemSpeaking = false;
+                if(isLiveActive && recognition) try{ recognition.start();}catch(e){}
+            };
+            
+            synth.speak(utter);
+        }
+
+        // Controllers
+        btnStartLive.addEventListener('click', function() {
+            if(!SpeechRecognition) return;
+            isLiveActive = true;
+            if(liveWelcomeMsg) liveWelcomeMsg.remove();
+            
+            btnStartLive.classList.add('d-none');
+            btnPauseLive.classList.remove('d-none');
+            btnStopLive.classList.remove('d-none');
+            liveLangSelect.disabled = true;
+            
+            const selectedLang = liveLangSelect.value;
+            recognition.lang = selectedLang === 'ta' ? 'ta-IN' : selectedLang === 'hi' ? 'hi-IN' : 'en-US';
+            try { recognition.start(); } catch(e){}
+        });
+        
+        function stopLiveSession() {
+            isLiveActive = false;
+            if(recognition) recognition.stop();
+            if(synth) synth.cancel();
+            if(currentAudio) { currentAudio.pause(); currentAudio.currentTime = 0; }
+            
+            btnStartLive.classList.remove('d-none');
+            btnStartLive.innerHTML = '<i class="fas fa-play me-2"></i>Start Conversation';
+            btnPauseLive.classList.add('d-none');
+            btnStopLive.classList.add('d-none');
+            liveLangSelect.disabled = false;
+            isSystemSpeaking = false;
+            liveTranscriptionText.innerHTML = '<span class="text-muted fst-italic">Session Stopped.</span>';
+        }
+        
+        btnStopLive.addEventListener('click', stopLiveSession);
+        
+        btnPauseLive.addEventListener('click', function() {
+            isLiveActive = false;
+            if(recognition) recognition.stop();
+            if(synth) synth.cancel();
+            if(currentAudio) currentAudio.pause();
+            
+            btnStartLive.classList.remove('d-none');
+            btnStartLive.innerHTML = '<i class="fas fa-play me-2"></i>Resume';
+            btnPauseLive.classList.add('d-none');
+            btnStopLive.classList.add('d-none');
+            liveLangSelect.disabled = false;
+            liveTranscriptionText.innerHTML = '<span class="text-warning fw-semibold">Session Paused.</span>';
+        });
+
+    });
+</script>
+{% endblock %}
