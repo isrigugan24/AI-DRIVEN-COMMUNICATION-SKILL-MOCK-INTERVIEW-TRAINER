@@ -181,15 +181,7 @@ MULTILINGUAL_AI_COACHING = {
 # Initialize Database and seeded User
 with app.app_context():
     db.create_all()
-    if not User.query.first():
-        default_user = User(
-            name="Jane Doe",
-            email="jane.doe@example.com",
-            role="Premium Learner",
-            avatar_path=None
-        )
-        db.session.add(default_user)
-        db.session.commit()
+    
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
