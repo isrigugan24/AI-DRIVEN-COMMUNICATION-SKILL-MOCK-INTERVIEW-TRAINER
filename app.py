@@ -182,6 +182,14 @@ MULTILINGUAL_AI_COACHING = {
 with app.app_context():
     db.create_all()
     
+# Remove old default/demo user
+    old_user = User.query.filter_by(
+        email="jane.doe@example.com"
+    ).first()
+
+    if old_user:
+        db.session.delete(old_user)
+        db.session.commit()
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
