@@ -6,6 +6,9 @@ from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, jsonify, send_from_directory, session
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash,check_password_hash
+from flask import session
+from functools import wraps
 import asyncio
 import edge_tts
 
@@ -27,10 +30,20 @@ os.makedirs(app.config['AUDIO_FOLDER'], exist_ok=True)
 
 db = SQLAlchemy(app)
 
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if "user_id" not in session:
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+
+    return decorated_function
+
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
+    password_hash = db.Column(db.String(225),nullable=False)
     role = db.Column(db.String(50), nullable=False)
     avatar_path = db.Column(db.String(255), nullable=True)
 
@@ -190,6 +203,60 @@ with app.app_context():
     if old_user:
         db.session.delete(old_user)
         db.session.commit()
+        
+@app.route("/signup", methods=["GET", "POST"])
+def signup():
+    if request.method == "POST":
+        name = request.form.get("name")
+        email = request.form.get("email")
+        password = request.form.get("password")
+
+        if not name or not email or not password:
+            return render_template("signup.html", error="Please fill all fields.")
+
+        existing_user = User.query.filter_by(email=email).first()
+
+        if existing_user:
+            return render_template("signup.html", error="Email already registered.")
+
+        user = User(
+            name=name,
+            email=email,
+            password_hash=generate_password_hash(password),
+            role="Learner"
+        )
+
+        db.session.add(user)
+        db.session.commit()
+
+        session["user_id"] = user.id
+
+        return redirect(url_for("dashboard"))
+
+    return render_template("signup.html")
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        email = request.form.get("email")
+        password = request.form.get("password")
+
+        user = User.query.filter_by(email=email).first()
+
+        if user and check_password_hash(user.password_hash, password):
+            session["user_id"] = user.id
+            return redirect(url_for("dashboard"))
+
+        return render_template("login.html", error="Invalid email or password.")
+
+    return render_template("login.html")
+
+
+# 👇 YOUR EXISTING ROUTES CONTINUE BELOW
+@app.route("/")
+def home():
+    return redirect(url_for("dashboard"))
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -441,11 +508,20 @@ def uploaded_file(filename):
 # -------------------------------------------------------------
 # Routing: Dashboard & Dynamic Stats
 # -------------------------------------------------------------
-@app.route('/')
+@app.route('/dashboard')
 def dashboard():
-    """Main dashboard view with dynamically calculated stats."""
     stats = compute_dashboard_stats()
-    return render_template('dashboard.html', stats=stats)
+
+    user = None
+
+    if "user_id" in session:
+        user = User.query.get(session["user_id"])
+
+    return render_template(
+        'dashboard.html',
+        stats=stats,
+        user=user
+    )
 
 @app.route('/api/dashboard/stats')
 def api_dashboard_stats():
@@ -455,8 +531,8 @@ def api_dashboard_stats():
 
 @app.route('/logout')
 def logout():
-    """Dummy logout route."""
-    return redirect(url_for('dashboard'))
+    session.clear()
+    return redirect(url_for("dashboard"))
 
 @app.route('/profile/update', methods=['POST'])
 def update_profile():
@@ -887,6 +963,7 @@ def analyze_communication_input(text, mode='voice', input_lang='en', reply_lang=
 # Routing: Communication Skill Development Module
 # -------------------------------------------------------------
 @app.route('/communication')
+@login_required
 def communication():
     """Communication module interface supporting multilingual voice and English text."""
     languages = [
@@ -1168,11 +1245,13 @@ def complete_communication_session():
 # Routing: Interview Skill Development Module
 # -------------------------------------------------------------
 @app.route('/interview')
+@login_required
 def interview():
     """Mock interview module interface."""
     return render_template('interview.html')
 
 @app.route('/voice-trainer')
+@login_required
 def voice_trainer():
     """Real-time AI Voice Communication Trainer module."""
     return render_template('voice_trainer.html', languages=SUPPORTED_LANGUAGES)

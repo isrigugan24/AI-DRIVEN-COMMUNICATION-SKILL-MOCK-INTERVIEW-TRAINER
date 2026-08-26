@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Sign Up | AI Communication Skill & Interview Trainer</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body class="auth-page">
+
+<div class="auth-container">
+
+    <!-- LEFT SIDE -->
+    <div class="auth-left">
+
+        <div class="auth-logo">
+            🤖
+        </div>
+
+        <h1>Start Your<br>Learning Journey</h1>
+
+        <p>
+            Create your account and start improving your
+            communication and interview skills with AI.
+        </p>
+
+        <div class="auth-features">
+            <div class="auth-feature">✓ Practice communication skills</div>
+            <div class="auth-feature">✓ Prepare for interviews</div>
+            <div class="auth-feature">✓ Track your progress</div>
+            <div class="auth-feature">✓ Get AI-powered feedback</div>
+        </div>
+
+    </div>
+
+
+    <!-- RIGHT SIDE -->
+    <div class="auth-right">
+
+        <h2>Create Account</h2>
+
+        <p class="auth-subtitle">
+            Join the AI Communication Skill & Interview Trainer.
+        </p>
+
+        {% if error %}
+        <div class="auth-error">
+            {{ error }}
+        </div>
+        {% endif %}
+
+        <form method="POST">
+
+            <div class="auth-form-group">
+                <label for="name">Full Name</label>
+
+                <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    class="auth-input"
+                    placeholder="Enter your name"
+                    required>
+            </div>
+
+            <div class="auth-form-group">
+                <label for="email">Email Address</label>
+
+                <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    class="auth-input"
+                    placeholder="Enter your email"
+                    required>
+            </div>
+
+            <div class="auth-form-group">
+                <label for="password">Password</label>
+
+                <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    class="auth-input"
+                    placeholder="Create a password"
+                    required>
+            </div>
+
+            <button type="submit" class="auth-btn">
+                Create Account
+            </button>
+
+        </form>
+
+        <div class="auth-switch">
+            Already have an account?
+            <a href="{{ url_for('login') }}">Sign In</a>
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+</html>
